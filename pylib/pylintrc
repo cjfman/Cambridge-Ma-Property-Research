@@ -1,0 +1,21 @@
+[DEFAULT]
+disable=bad-whitespace,
+    line-too-long,
+    superfluous-parens,
+    bad-continuation,
+    too-many-lines,
+    bare-except,
+    invalid-name,
+    too-many-instance-attributes,
+    too-many-arguments,
+    missing-docstring,
+    ungrouped-imports,
+    too-few-public-methods,
+    broad-except,
+    misplaced-comparison-constant
+ignored-classes=Namespace,
+    Entry,
+    MainDatabaseEntry,
+    WebsiteDatabaseEntry,
+    MasterListEntry,
+    GisEntry
