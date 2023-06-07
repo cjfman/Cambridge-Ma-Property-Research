@@ -1,13 +1,16 @@
 from collections import defaultdict
-from typing import Sequence
-
 
 from data_sources import (
     MainDatabaseEntry,
     WebsiteDatabaseEntry,
-    MasterListEntry,
     GisEntry,
 )
+
+class MissingDataError(Exception):
+    def __init__(self, name):
+        Exception.__init__(f"No source for information found for '{name}'")
+        self.name = name
+
 
 class Property:
     ## pylint: disable=too-many-public-methods
@@ -41,16 +44,16 @@ class Property:
         elif self.main_entry is not None:
             return self.main_entry.PropId
 
-        raise Exception("No source for information found")
+        raise MissingDataError('id')
 
     @property
     def building_id(self):
         if self._building_id is not None:
             return self._building_id
         elif self.main_entry is not None:
-            return self.main_entry.BldgNum
+            return self.main_entry.getBuildingId()
 
-        raise Exception("No source for information found")
+        raise MissingDataError('building_id')
 
     @property
     def address(self):
@@ -75,7 +78,7 @@ class Property:
         elif self.main_entry is not None:
             return self.main_entry.MapLot
 
-        raise Exception("No source for information found")
+        raise MissingDataError('map_lot')
 
     @property
     def num_stories(self):
@@ -84,7 +87,7 @@ class Property:
         elif self.main_entry is not None:
             return self.main_entry.Exterior_NumStories
 
-        raise Exception("No source for information found")
+        raise MissingDataError('num_stories')
 
     @property
     def floor_location(self):
@@ -93,18 +96,18 @@ class Property:
         elif self.main_entry is not None:
             return self.main_entry.Exterior_FloorLocation
 
-        raise Exception("No source for information found")
+        raise MissingDataError('floor_location')
 
     @property
     def land_area(self):
         if self._land_area is not None:
             return self._land_area
         elif self.gis_entry is not None:
-            return self.gis_entry.LivingArea
+            return self.gis_entry.LandArea
         elif self.main_entry is not None:
-            return self.main_entry.Interior_LivingArea
+            return self.main_entry.Interior_LandArea
 
-        raise Exception("No source for information found")
+        raise MissingDataError('land_area')
 
     @property
     def living_area(self):
@@ -113,7 +116,7 @@ class Property:
         elif self.main_entry is not None:
             return self.main_entry.Interior_LivingArea
 
-        raise Exception("No source for information found")
+        raise MissingDataError('living_area')
 
     @property
     def year_built(self):
@@ -122,7 +125,7 @@ class Property:
         elif self.main_entry is not None:
             return self.main_entry.Condition_YearBuilt
 
-        raise Exception("No source for information found")
+        raise MissingDataError('year_built')
 
     @property
     def first_floor_area(self):
@@ -131,7 +134,7 @@ class Property:
         elif self.website_entry is not None:
             return self.website_entry.FirstFloor_GrossArea
 
-        raise Exception("No source for information found")
+        raise MissingDataError('first_floor_area')
 
     def setWebsiteEntry(self, website_entry:WebsiteDatabaseEntry):
         self.website_entry = website_entry
@@ -151,18 +154,34 @@ class Property:
         return Building(main_entry=self.main_entry)
 
     def to_json(self):
-        return {
-            'id':               self.id,
-            'building_id':      self.building_id,
-            'address':          self.address,
-            'map_lot':          self.map_lot,
-            'num_stories':      self.num_stories,
-            'floor_location':   self.floor_location,
-            'land_area':        self.land_area,
-            'living_area':      self.living_area,
-            'year_built':       self.year_built,
-            'first_floor_area': self.first_floor_area,
-        }
+        try:
+            return {
+                'id':               self.id,
+                'building_id':      self.building_id,
+                'address':          self.address,
+                'map_lot':          self.map_lot,
+                'num_stories':      self.num_stories,
+                'floor_location':   self.floor_location,
+                'land_area':        self.land_area,
+                'living_area':      self.living_area,
+                'year_built':       self.year_built,
+                'first_floor_area': self.first_floor_area,
+                'OK': True,
+            }
+        except MissingDataError:
+            return {
+                'id':               self._id,
+                'building_id':      self._building_id,
+                'address':          self._address,
+                'map_lot':          self._map_lot,
+                'num_stories':      self._num_stories,
+                'floor_location':   self._floor_location,
+                'land_area':        self._land_area,
+                'living_area':      self._living_area,
+                'year_built':       self._year_built,
+                'first_floor_area': self._first_floor_area,
+                'OK': False,
+            }
 
     def _selfValidate(self):
         if self.website_entry is not None:
@@ -186,30 +205,31 @@ class Property:
 
 class Building:
     ## pylint: disable=too-many-public-methods
-    def __init__(self, *, properties=None, main_entry=None, master_list_entry=None,
-            gis_entry=None, **kwargs):
+    def __init__(self, *, main_property=None, properties=None, **kwargs):
         kwargs = defaultdict(lambda: None, kwargs)
-        self._properties:Sequence[Property]     = list(properties or [])
-        self._main_entry:MainDatabaseEntry      = main_entry
-        self._master_list_entry:MasterListEntry = master_list_entry
-        self._gis_entry:GisEntry                = gis_entry
-        self._id             = kwargs['id']
-        self._pid            = kwargs['pid']
-        self._gis_id         = kwargs['gis_id']
-        self._zone           = kwargs['zone']
-        self._land_area      = kwargs['land_area']
-        self._living_area    = kwargs['living_area']
-        self._num_stories    = kwargs['num_stories']
-        self._floor_location = kwargs['floor_location']
-        self._num_units      = kwargs['num_units']
-        self._total_rooms    = kwargs['total_rooms']
-        self._bedrooms       = kwargs['bedrooms']
-        self._location       = kwargs['location']
-        self._neighborhood   = kwargs['neighborhood']
-        self._block          = kwargs['block']
-        self._block_group    = kwargs['block_group']
-        self._tract          = kwargs['tract']
-        self._first_floor_area = kwargs['first_floor_gross_area']
+        self.id                = kwargs['id']
+        self.pid               = kwargs['pid']
+        self.street_number     = kwargs['street_number']
+        self.street_name       = kwargs['street_name']
+        self.full_address      = kwargs['full_address']
+        self.zipcode           = kwargs['zipcode']
+        self._zone             = kwargs['zone']
+        self._land_area        = kwargs['land_area']
+        self._living_area      = kwargs['living_area']
+        self.num_stories       = kwargs['num_stories']
+        self.num_units         = kwargs['num_units']
+        self._total_rooms      = kwargs['total_rooms']
+        self._bedrooms         = kwargs['bedrooms']
+        self.location          = kwargs['location']
+        self.neighborhood      = kwargs['neighborhood']
+        self.block             = kwargs['block']
+        self.block_group       = kwargs['block_group']
+        self.tract             = kwargs['tract']
+        self._first_floor_area = kwargs['first_floor_area']
+        self._properties       = list(properties or [])
+        if main_property:
+            self.setMainProperty(main_property)
+
 
     @classmethod
     def fromJson(cls, data):
@@ -218,6 +238,20 @@ class Building:
 
         return cls(**data)
 
+    def setMainProperty(self, main_property):
+        """Set values that come from being the main property"""
+        self.pid          = main_property.id
+        self._zone        = main_property.zone
+        self._land_area   = main_property.land_area
+        self._living_area = main_property.land_area
+        self.num_stories  = main_property.num_stories
+        self.num_units    = main_property.num_units
+        self._total_rooms = main_property.total_rooms
+        self._bedrooms    = main_property.bedrooms
+
+    def addProperty(self, new_property):
+        self.properties.append(new_property)
+
     @property
     def properties(self):
         return list(self._properties)
@@ -225,185 +259,56 @@ class Building:
     def set_properties(self, properties):
         self._properties = list(properties)
 
-    @property
-    def main_entry(self):
-        return self._main_entry
-
-    def set_main_entry(self, main_entry):
-        self._main_entry = main_entry
-
-    @property
-    def gis_entry(self):
-        return self._gis_entry
-
-    def set_gis_entry(self, gis_entry):
-        self._gis_entry = gis_entry
-
-    @property
-    def master_list_entry(self):
-        return self._master_list_entry
-
-    def set_master_list_entry(self, master_entry):
-        self._master_list_entry = master_entry
-
     ## For most properties, prefer the object member, otherwise use the backup source
     @property
-    def id(self):
-        if self._id is not None:
-            return self._id
-        elif self.main_entry is not None:
-            return self.main_entry.MapLot
-
-        raise Exception(f"No source for information found for 'id'")
-
-    @property
-    def pid(self):
-        if self._pid is not None:
-            return self._pid
-        elif self.main_entry is not None:
-            return self.main_entry.PID
-
-        raise Exception(f"No source for information found for 'pid'")
-
-    @property
-    def gis_id(self):
-        if self._gis_id is not None:
-            return self._gis_id
-        elif self.main_entry is not None:
-            return self.main_entry.GISID
-
-        raise Exception(f"No source for information found for 'gis_id'")
-
-    @property
     def zone(self):
-        if self._zone is not None:
-            return self._zone
-        elif self.main_entry is not None:
-            return self.main_entry.Zoning
-
-        raise Exception(f"No source for information found for 'zone'")
+        return self._zone
 
     @property
     def land_area(self):
         if self._land_area is not None:
             return self._land_area
-        elif self.gis_entry is not None:
-            return self.gis_entry.LandArea
-        elif self.main_entry is not None:
-            return self.main_entry.LandArea
 
-        ## None of the backup sources has land area
         ## Look for one in the properties
         if self._properties:
             areas = [x.land_area for x in self._properties if x.land_area is not None]
             if areas:
                 return areas[0]
 
-            return None
-
-        raise Exception(f"No source for information found for 'land_area'")
+        return None
 
     @property
     def living_area(self):
         if self._living_area is not None:
             return self._living_area
-        elif self.main_entry is not None:
-            return self.main_entry.Interior_LivingArea
 
         ## Sum up living areas of the properties
-        return sum([x.living_area for x in self._properties])
+        if self._properties:
+            return sum([x.living_area for x in self._properties])
 
-    @property
-    def num_stories(self):
-        if self._num_stories is not None:
-            return self._num_stories
-        elif self.main_entry is not None:
-            return self.main_entry.Exterior_NumStories
-
-        raise Exception("No source for information found for 'num_stories'")
-
-    @property
-    def floor_location(self):
-        if self._floor_location is not None:
-            return self._floor_location
-        elif self.main_entry is not None:
-            return self.main_entry.Exterior_FloorLocation
-
-        raise Exception("No source for information found for 'floor_location'")
-
-    @property
-    def num_units(self):
-        if self._num_units is not None:
-            return self._num_units
-        elif self.main_entry is not None:
-            return self.main_entry.Interior_NumUnits
-
-        return len(self._properties)
+        return None
 
     @property
     def total_rooms(self):
         if self._total_rooms is not None:
             return self._total_rooms
-        elif self.main_entry is not None:
-            return self.main_entry.Interior_TotalRooms
 
         ## Sum up from properties
-        return sum([x.total_rooms for x in self._properties])
+        if self._properties:
+            return sum([x.total_rooms for x in self._properties])
+
+        return None
 
     @property
     def bedrooms(self):
         if self._bedrooms is not None:
             return self._bedrooms
-        elif self.main_entry is not None:
-            return self.main_entry.Interior_Bedrooms
 
         ## Sum up from properties
-        return sum([x.bedrooms for x in self._properties])
+        if self._properties:
+            return sum([x.bedrooms for x in self._properties])
 
-    @property
-    def location(self):
-        if self._location is not None:
-            return self._location
-        elif self.master_list_entry is not None:
-            return (self.master_list_entry.lat, self.master_list_entry.lon)
-
-        raise Exception(f"No source for information found for 'location'")
-
-    @property
-    def neighborhood(self):
-        if self._neighborhood is not None:
-            return self._neighborhood
-        elif self.master_list_entry is not None:
-            return self.master_list_entry.Neighborhood
-
-        raise Exception(f"No source for information found for 'neighborhood'")
-
-    @property
-    def block(self):
-        if self._block is not None:
-            return self._block
-        elif self.master_list_entry is not None:
-            return self.master_list_entry.Block
-
-        raise Exception(f"No source for information found for 'block'")
-
-    @property
-    def block_group(self):
-        if self._block_group is not None:
-            return self._block_group
-        elif self.master_list_entry is not None:
-            return self.master_list_entry.BLKGRP
-
-        raise Exception(f"No source for information found for 'block_group'")
-
-    @property
-    def tract(self):
-        if self._tract is not None:
-            return self._tract
-        elif self.master_list_entry is not None:
-            return self.master_list_entry.Tract
-
-        raise Exception(f"No source for information found for 'tract'")
+        return None
 
     @property
     def first_floor_area(self):
@@ -412,19 +317,18 @@ class Building:
         elif self._properties:
             return self._properties[0].first_floor_area
 
-        raise Exception(f"No source for information found for 'first_floor_area'")
-
+        return None
 
     def to_json(self):
         data = {
             'id':               self.id,
             'pid':              self.pid,
-            'gis_id':           self.gis_id,
+            'street_number':    self.street_number,
+            'street_name':      self.street_name,
             'zone':             self.zone,
             'land_area':        self.land_area,
             'living_area':      self.living_area,
             'num_stories':      self.num_stories,
-            'floor_location':   self.floor_location,
             'num_units':        self.num_units,
             'total_rooms':      self.total_rooms,
             'bedrooms':         self.bedrooms,
@@ -438,4 +342,4 @@ class Building:
         if self._properties:
             data['properties'] = [x.to_json() for x in self._properties]
 
-        return None
+        return data

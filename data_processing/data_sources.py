@@ -1,3 +1,7 @@
+import csv
+
+from collections import defaultdict
+
 MAIN_COLUMNS = (
     'PID',
     'GISID',
@@ -171,6 +175,10 @@ class Entry:
         ## pylint: disable=no-self-use
         return None
 
+    def getMapLot(self):
+        ## pylint: disable=no-self-use
+        return None
+
     def isBuilding(self):
         ## pylint: disable=no-self-use
         return None
@@ -187,14 +195,14 @@ class MainDatabaseEntry(Entry):
     def getPropertyId(self):
         return self.PID
 
+    def getMapLot(self):
+        return self.MapLot
+
     def getBuildingId(self):
-        return self.BldgNum
+        return self.GISID
 
     def isBuilding(self):
-        return (self.MapLot is None)
-
-    def isProperty(self):
-        return (self.MapLot is not None)
+        return (self.MapLot is None or self.MapLot == self.GISID)
 
 
 class WebsiteDatabaseEntry(Entry):
@@ -206,6 +214,9 @@ class WebsiteDatabaseEntry(Entry):
 
     def getBuildingId(self):
         return '_'.join(self.MapLot.split('-')[:2])
+
+    def getMapLot(self):
+        return self.MapLot
 
     def isBuilding(self):
         return (self.MapLot.count('-') == 1)
@@ -248,6 +259,21 @@ class MasterListEntry(Entry):
     def isProperty(self):
         return False
 
+    def to_json(self):
+        return {
+            'id':            self.BldgID,
+            'street_number': self.StNm,
+            'street_name':   self.StName,
+            'full_address':  self.Full_Addr,
+            'type':          self.TYPE,
+            'location':      (self.lat, self.lon),
+            'zipcode':       self.Zip_Code,
+            'neighborhood':  self.Neighborhood,
+            'block':         self.Block,
+            'block_group':   self.BLKGRP,
+            'tract':         self.Tract,
+        }
+
 
 class GisEntry(Entry):
     def __init__(self, **attrs):
@@ -255,6 +281,9 @@ class GisEntry(Entry):
 
     def getPropertyId(self):
         return self.PID
+
+    def getMapLot(self):
+        return self.PropertyID
 
     def getBuildingId(self):
         """Return the building ID of the property"""
@@ -266,3 +295,40 @@ class GisEntry(Entry):
 
     def isProperty(self):
         return (self.PropertyID.count('-') == 2)
+
+
+class Database:
+    def __init__(self, path, data_type, *, delimiter=None):
+        self.path = path
+        self.entries = []
+        self.by_pid = []
+        self.by_map_lot = []
+        self.by_building_id = defaultdict(list)
+        with open(path) as f:
+            reader = None
+            if delimiter is None:
+                reader = csv.DictReader(f)
+            else:
+                reader = csv.DictReader(f, delimiter=delimiter)
+
+            for row in reader:
+                entry = data_type(row)
+                self.entries.append(entry)
+                self.by_pid[entry.getPropertyId()] = entry
+                self.by_map_lot[entry.getMapLot()] = entry
+                self.by_building_id[entry.getBuildingId()].append(entry)
+
+
+class MainDatabase(Database):
+    def __init__(self, path):
+        Database.__init__(self, path, MainDatabaseEntry)
+
+
+class WebsiteDatabase(Database):
+    def __init__(self, path):
+        Database.__init__(self, path, WebsiteDatabaseEntry, delimiter="\t")
+
+
+class GisDatabase(Database):
+    def __init__(self, path):
+        Database.__init__(self, path, GisEntry, delimiter="\t")
