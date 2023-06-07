@@ -297,6 +297,106 @@ class GisEntry(Entry):
         return (self.PropertyID.count('-') == 2)
 
 
+class MissingDataError(Exception):
+    def __init__(self, name):
+        Exception.__init__(f"No source for information found for '{name}'")
+        self.name = name
+
+
+class CombinedEntry:
+    ## pylint: disable=too-many-public-methods
+    def __init__(self, *, main_entry, website_entry=None, gis_entry=None):
+        self.main_entry: MainDatabaseEntry       = main_entry
+        self.website_entry: WebsiteDatabaseEntry = website_entry
+        self.gis_entry: GisEntry                 = gis_entry
+        self._selfValidate()
+
+    @property
+    def id(self):
+        return self.main_entry.PropId
+
+    @property
+    def building_id(self):
+        return self.main_entry.getBuildingId()
+
+    @property
+    def address(self):
+        ## Preferibly use the text from the website
+        if self.website_entry is not None:
+            return self.website_entry.lblAddress
+
+        ## Construct address from the main entry
+        addr = self.main_entry.Address
+        if self.main_entry.Unit is not None:
+            addr += ' ' + self.main_entry.Unit
+
+        return addr
+
+    @property
+    def map_lot(self):
+        return self.main_entry.MapLot
+
+    @property
+    def num_stories(self):
+        return self.main_entry.Exterior_NumStories
+
+    @property
+    def floor_location(self):
+        return self.main_entry.Exterior_FloorLocation
+
+    @property
+    def land_area(self):
+        if self.gis_entry is not None:
+            return self.gis_entry.LandArea
+
+        return self.main_entry.Interior_LandArea
+
+    @property
+    def living_area(self):
+        return self.main_entry.Interior_LivingArea
+
+    @property
+    def year_built(self):
+        return self.main_entry.Condition_YearBuilt
+
+    @property
+    def first_floor_area(self):
+        if self.website_entry is not None:
+            return self.website_entry.FirstFloor_GrossArea
+
+        raise MissingDataError('first_floor_area')
+
+    def setWebsiteEntry(self, website_entry:WebsiteDatabaseEntry):
+        self.website_entry = website_entry
+        self._selfValidate()
+
+    def setGisEntry(self, gis_entry:GisEntry):
+        self.gis_entry = gis_entry
+        self._selfValidate()
+
+    def isBuilding(self):
+        return (self.main_entry.MapLot is None)
+
+    def _selfValidate(self):
+        if self.website_entry is not None:
+            ## Check property ID
+            if self.main_entry.PID != self.website_entry.PropId:
+                raise ValueError(f"Property IDs don't match. Found {self.main_entry.PID} and website {self.website_entry.PropId}")
+
+            ## Check building ID
+            if self.main_entry.MapLot != self.website_entry.MapLot:
+                raise ValueError(f"Building IDs don't match. Found {self.main_entry.MapLot} and website {self.website_entry.MapLot}")
+
+        if self.gis_entry is not None:
+            ## Check property ID
+            if self.main_entry.PID != self.gis_entry.PID:
+                raise ValueError(f"Property IDs don't match. Found {self.main_entry.PID} and gis {self.gis_entry.PID}")
+
+            ## Check building ID
+            if self.main_entry.MapLot != self.gis_entry.PropertyID:
+                raise ValueError(f"Building IDs don't match. Found {self.main_entry.MapLot} and gis {self.gis_entry.PropertyID}")
+
+
 class Database:
     def __init__(self, path, data_type, *, delimiter=None):
         self.path = path
