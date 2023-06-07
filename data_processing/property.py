@@ -338,6 +338,7 @@ class Building:
             'block_group':      self.block_group,
             'tract':            self.tract,
             'first_floor_area': self.first_floor_area,
+            'OK'              : bool(self.pid or self._properties),
         }
         if self._properties:
             data['properties'] = [x.to_json() for x in self._properties]
