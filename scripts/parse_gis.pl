@@ -46,7 +46,7 @@ sub parse {
     my @divs = split '<div class="ValueSet">', $raw;
     my $key_prefix = '';
     foreach (@divs) {
-        if (/Property ID ([^\-]+-[^\-<]+)(-[^<])?/) {
+        if (/Property ID ([^\-]+-[^\-<]+)(-[^<]+)?/) {
             $row{PropertyID} = "$1$2";
             $columns{PropertyID}++;
         }
