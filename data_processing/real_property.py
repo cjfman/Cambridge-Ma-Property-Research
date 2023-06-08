@@ -103,6 +103,9 @@ class Building:
     def firstFloorProperties(self):
         return tuple(filter(lambda x: x.floor_location == 1, self._properties))
 
+    def status(self):
+        return bool(self.pid or self._properties)
+
     @property
     def properties(self):
         return tuple(self._properties)
@@ -201,7 +204,7 @@ class Building:
             'block_group':      self.block_group,
             'tract':            self.tract,
             'first_floor_area': self.first_floor_area,
-            'OK'              : bool(self.pid or self._properties),
+            'OK'              : self.status(),
         }
         if self._properties:
             data['properties'] = [x.toJson() for x in self._properties]

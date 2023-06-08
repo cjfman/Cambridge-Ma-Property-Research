@@ -67,12 +67,11 @@ for main_entry in main_db.entries:
 
     building = building_map[entry.building_id]
     if entry.isBuilding():
-        #print(f"Setting property {entry.id} as main property for buliding {building.id}")
         building.setMainEntry(entry)
     else:
-        #print(f"Adding property {entry.id} to building {building.id}")
         building.addProperty(Property.fromJson(entry.toJson()))
 
+empty_buildings = tuple([x for x in buildings if not x.status()])
 
 print(f"Processed {count} properties and {len(buildings)} buildings")
 if missing_building:
@@ -81,6 +80,8 @@ if missing_web:
     print(f"Missing web: {len(missing_web)}")
 if missing_gis:
     print(f"Missing gis: {len(missing_gis)}")
+if empty_buildings:
+    print(f"Buildings without properties: {len(empty_buildings)}")
 
 data = {
     'buildings':        [x.toJson() for x in sorted(buildings, key=lambda x: x.id)],
