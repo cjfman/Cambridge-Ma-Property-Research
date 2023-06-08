@@ -38,14 +38,16 @@ MAIN_INT_COLUMNS = (
     'PID',
     'BldgNum',
     'LandArea',
-    'Exterior_Occupancy',
-    'Exterior_NumStories',
     'Exterior_FloorLocation',
     'Interior_LivingArea',
     'Interior_NumUnits',
     'Interior_TotalRooms',
     'Interior_Bedrooms',
     'Condition_YearBuilt',
+)
+
+MAIN_FLOAT_COLUMNS = (
+    'Exterior_NumStories',
 )
 
 WEBSITE_COLUMNS = (
@@ -76,10 +78,10 @@ WEBSITE_COLUMNS = (
 WEBSITE_INT_COLUMNS = (
     'PropId',
     'LandArea',
-    'NumStories'
-    'FloorLocation'
-    'LivingArea'
-    'NumberOfUnits'
+    'NumStories',
+    'FloorLocation',
+    'LivingArea',
+    'NumberOfUnits',
     'TotalRooms',
     'Bedrooms',
     'YearBuilt',
@@ -90,6 +92,7 @@ MASTER_LIST_COLUMNS = (
     'OBJECTID',
     'address_id',
     'BldgID',
+    'ml',
     'StNm',
     'StName',
     'Full_Addr',
@@ -109,10 +112,8 @@ MASTER_LIST_COLUMNS = (
     'BLKGRP2020',
 )
 
-MASTER_LIST_WEBSITE_INT_COLUMNS = (
+MASTER_LIST_INT_COLUMNS = (
     'OBJECTID',
-    'Ward',
-    'Precinct',
     'Block2010',
     'Tract2010',
     'BLKGRP2010',
@@ -152,13 +153,25 @@ class Entry:
         for key in required_columns:
             if key not in self.attrs:
                 self.attrs[key] = None
+            elif self.attrs[key] == 'None':
+                self.attrs[key] = None
+            elif self.attrs[key] == '':
+                self.attrs[key] = None
 
         ## Fix numbers
         for key in int_columns:
-            self.attrs[key] = int(self.attrs[key].replace(','))
+            try:
+                if self.attrs[key] is not None:
+                    self.attrs[key] = int(self.attrs[key].replace(',', ''))
+            except ValueError:
+                pass
 
         for key in float_columns:
-            self.attrs[key] = float(self.attrs[key].replace(','))
+            try:
+                if self.attrs[key] is not None:
+                    self.attrs[key] = float(self.attrs[key].replace(',', ''))
+            except ValueError:
+                pass
 
         ## Set attributes
         for attr, val in self.attrs.items():
@@ -190,9 +203,12 @@ class Entry:
 
 class MainDatabaseEntry(Entry):
     def __init__(self, **attrs):
-        Entry.__init__(self, attrs, MAIN_COLUMNS, MAIN_INT_COLUMNS)
+        Entry.__init__(self, attrs, MAIN_COLUMNS, MAIN_INT_COLUMNS, MAIN_FLOAT_COLUMNS)
 
     def getPropertyId(self):
+        if self.PID is None:
+            raise MissingDataError('PID')
+
         return self.PID
 
     def getMapLot(self):
@@ -227,7 +243,7 @@ class WebsiteDatabaseEntry(Entry):
 
 class MasterListEntry(Entry):
     def __init__(self, **attrs):
-        Entry.__init__(self, attrs, MASTER_LIST_COLUMNS, MASTER_LIST_WEBSITE_INT_COLUMNS, MASTER_LIST_FLOAT_COLUMNS)
+        Entry.__init__(self, attrs, MASTER_LIST_COLUMNS, MASTER_LIST_INT_COLUMNS, MASTER_LIST_FLOAT_COLUMNS)
 
     @property
     def Block(self):
@@ -250,8 +266,14 @@ class MasterListEntry(Entry):
 
         return self.BLKGRP2020
 
+    def getPropertyId(self):
+        if self.ml is None:
+            raise MissingDataError('ml')
+
+        return self.ml
+
     def getBuildingId(self):
-        return self.BldgID
+        return self.ml
 
     def isBuilding(self):
         return True
@@ -259,9 +281,9 @@ class MasterListEntry(Entry):
     def isProperty(self):
         return False
 
-    def to_json(self):
+    def toJson(self):
         return {
-            'id':            self.BldgID,
+            'id':            self.ml,
             'street_number': self.StNm,
             'street_name':   self.StName,
             'full_address':  self.Full_Addr,
@@ -299,13 +321,13 @@ class GisEntry(Entry):
 
 class MissingDataError(Exception):
     def __init__(self, name):
-        Exception.__init__(f"No source for information found for '{name}'")
+        Exception.__init__(self, f"No source for information found for '{name}'")
         self.name = name
 
 
 class CombinedEntry:
     ## pylint: disable=too-many-public-methods
-    def __init__(self, *, main_entry, website_entry=None, gis_entry=None):
+    def __init__(self, main_entry, *, website_entry=None, gis_entry=None):
         self.main_entry: MainDatabaseEntry       = main_entry
         self.website_entry: WebsiteDatabaseEntry = website_entry
         self.gis_entry: GisEntry                 = gis_entry
@@ -313,7 +335,7 @@ class CombinedEntry:
 
     @property
     def id(self):
-        return self.main_entry.PropId
+        return self.main_entry.getPropertyId()
 
     @property
     def building_id(self):
@@ -349,7 +371,7 @@ class CombinedEntry:
         if self.gis_entry is not None:
             return self.gis_entry.LandArea
 
-        return self.main_entry.Interior_LandArea
+        return self.main_entry.LandArea
 
     @property
     def living_area(self):
@@ -377,6 +399,20 @@ class CombinedEntry:
     def isBuilding(self):
         return (self.main_entry.MapLot is None)
 
+    def toJson(self):
+        return {
+            'id':               self.id,
+            'building_id':      self.building_id,
+            'address':          self.address,
+            'map_lot':          self.map_lot,
+            'num_stories':      self.num_stories,
+            'floor_location':   self.floor_location,
+            'land_area':        self.land_area,
+            'living_area':      self.living_area,
+            'year_built':       self.year_built,
+            'first_floor_area': self.first_floor_area,
+        }
+
     def _selfValidate(self):
         if self.website_entry is not None:
             ## Check property ID
@@ -398,13 +434,16 @@ class CombinedEntry:
 
 
 class Database:
-    def __init__(self, path, data_type, *, delimiter=None):
+    def __init__(self, path, data_type, *, delimiter=None, verbose=False):
         self.path = path
         self.entries = []
-        self.by_pid = []
-        self.by_map_lot = []
+        self.by_pid = {}
+        self.by_map_lot = {}
         self.by_building_id = defaultdict(list)
-        with open(path) as f:
+        if verbose:
+            print(f"Loading {path}")
+
+        with open(path, 'r', encoding="utf-8-sig") as f:
             reader = None
             if delimiter is None:
                 reader = csv.DictReader(f)
@@ -412,23 +451,47 @@ class Database:
                 reader = csv.DictReader(f, delimiter=delimiter)
 
             for row in reader:
-                entry = data_type(row)
-                self.entries.append(entry)
-                self.by_pid[entry.getPropertyId()] = entry
-                self.by_map_lot[entry.getMapLot()] = entry
-                self.by_building_id[entry.getBuildingId()].append(entry)
+                try:
+                    entry = data_type(**row)
+                    self.entries.append(entry)
+                    self.by_pid[entry.getPropertyId()] = entry
+                    self.by_map_lot[entry.getMapLot()] = entry
+                    self.by_building_id[entry.getBuildingId()].append(entry)
+                except Exception as e:
+                    print(f"Error while processing {data_type} entry:", row)
+                    raise(e)
+
+    def __getitem__(self, key):
+        return self.by_pid[key]
+
+    def __contains__(self, key):
+        return (key in self.by_pid)
+
+    def __iter__(self):
+        return iter(self.entries)
 
 
 class MainDatabase(Database):
-    def __init__(self, path):
-        Database.__init__(self, path, MainDatabaseEntry)
+    def __init__(self, path, **kwargs):
+        Database.__init__(self, path, MainDatabaseEntry, **kwargs)
 
 
 class WebsiteDatabase(Database):
-    def __init__(self, path):
-        Database.__init__(self, path, WebsiteDatabaseEntry, delimiter="\t")
+    def __init__(self, path, **kwargs):
+        Database.__init__(self, path, WebsiteDatabaseEntry, delimiter="\t", **kwargs)
 
 
 class GisDatabase(Database):
-    def __init__(self, path):
-        Database.__init__(self, path, GisEntry, delimiter="\t")
+    def __init__(self, path, **kwargs):
+        Database.__init__(self, path, GisEntry, delimiter="\t", **kwargs)
+
+
+class MasterDatabase(Database):
+    def __init__(self, path, **kwargs):
+        Database.__init__(self, path, MasterListEntry, **kwargs)
+
+    def __getitem__(self, key):
+        return self.by_building_id[key]
+
+    def __contains__(self, key):
+        return (key in self.by_building_id)

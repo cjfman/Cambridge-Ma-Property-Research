@@ -40,7 +40,6 @@ class Property:
             'living_area':      self.living_area,
             'year_built':       self.year_built,
             'first_floor_area': self.first_floor_area,
-            'OK': True,
         }
 
 
@@ -68,6 +67,7 @@ class Building:
         self.tract             = kwargs['tract']
         self._first_floor_area = kwargs['first_floor_area']
         self._properties       = list(properties or [])
+        self._aliases          = []
         if main_property:
             self.setMainProperty(main_property)
 
@@ -80,6 +80,9 @@ class Building:
 
     def setMainProperty(self, main_property):
         """Set values that come from being the main property"""
+        if self.pid is not None:
+            raise Exception(f"Cannot set main property twice: Already set as {self.pid}")
+
         self.pid          = main_property.id
         self._zone        = main_property.zone
         self._land_area   = main_property.land_area
@@ -91,6 +94,9 @@ class Building:
 
     def addProperty(self, new_property):
         self.properties.append(new_property)
+
+    def addAlias(self, alias):
+        self._aliases.append(alias)
 
     @property
     def properties(self):
@@ -182,5 +188,7 @@ class Building:
         }
         if self._properties:
             data['properties'] = [x.to_json() for x in self._properties]
+        if self._aliases:
+            data['aliases'] = [x.to_json() for x in self._aliases]
 
         return data
