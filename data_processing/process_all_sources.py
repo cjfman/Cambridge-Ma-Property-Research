@@ -27,14 +27,20 @@ gis_db     = ds.GisDatabase(gis_path,         verbose=True)
 ## Create buildings
 buildings = [Building.fromJson(x.toJson()) for x in master_db]
 building_map = {x.id: x for x in buildings}
+for b in buildings:
+    if building_map[b.id].object_id != b.object_id:
+        print(f"Found an alias for building {b.id}: {b.object_id}")
+        building_map[b.id].addAlias(b)
 
 
 ## Attempt to combine property sources
 ## Use main db as attoritative
+count = 0
 missing_web = []
 missing_gis = []
 missing_building = []
 for main_entry in main_db.entries:
+    count += 1
     entry = ds.CombinedEntry(main_entry)
     print(f"Processing property {entry.id}: {entry.address}")
 
@@ -52,20 +58,29 @@ for main_entry in main_db.entries:
         print(f"Property {entry.id} missing GIS data")
         missing_gis.append(entry.id)
 
-    ## Convert to property
-    prop = Property.fromJson(entry.toJson())
 
     ## Building
-    if prop.building_id not in building_map:
-        print(f"Property {prop.id} has no building. Couldn't find {prop.building_id}")
-        missing_building.append(prop)
+    if entry.building_id not in building_map:
+        print(f"Property {entry.id} has no building. Couldn't find {entry.building_id}")
+        missing_building.append(entry)
         continue
 
-    building = building_map[prop.building_id]
-    if prop.isBuilding():
-        building.setMainProperty(prop)
+    building = building_map[entry.building_id]
+    if entry.isBuilding():
+        #print(f"Setting property {entry.id} as main property for buliding {bulding.id}")
+        building.setMainProperty(entry)
     else:
-        building.addProperty(prop)
+        #print(f"Adding property {entry.id} to building {building.id}")
+        building.addProperty(Property.fromJson(entry.toJson()))
+
+
+print(f"Processed {count} properties and {len(buildings)} buildings")
+if missing_building:
+    print(f"Missing building: {len(missing_building)}")
+if missing_web:
+    print(f"Missing web: {len(missing_web)}")
+if missing_gis:
+    print(f"Missing gis: {len(missing_gis)}")
 
 data = {
     'buildings':        [x.toJson() for x in sorted(buildings, key=lambda x: x.id)],
@@ -73,5 +88,6 @@ data = {
     'missing_web':      sorted(missing_web),
     'missing_gis':      sorted(missing_gis),
 }
-with open(out_path) as f:
-    json.dump(data, f)
+print(f"Writing to {out_path}")
+with open(out_path, 'w') as f:
+    json.dump(data, f, sort_keys=True, indent=4)

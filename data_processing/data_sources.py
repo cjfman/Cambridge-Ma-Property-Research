@@ -153,10 +153,6 @@ class Entry:
         for key in required_columns:
             if key not in self.attrs:
                 self.attrs[key] = None
-            elif self.attrs[key] == 'None':
-                self.attrs[key] = None
-            elif self.attrs[key] == '':
-                self.attrs[key] = None
 
         ## Fix numbers
         for key in int_columns:
@@ -284,11 +280,12 @@ class MasterListEntry(Entry):
     def toJson(self):
         return {
             'id':            self.ml,
+            'object_id':     self.OBJECTID,
             'street_number': self.StNm,
             'street_name':   self.StName,
             'full_address':  self.Full_Addr,
             'type':          self.TYPE,
-            'location':      (self.lat, self.lon),
+            'location':      (self.lon, self.lat),
             'zipcode':       self.Zip_Code,
             'neighborhood':  self.Neighborhood,
             'block':         self.Block,
@@ -355,8 +352,16 @@ class CombinedEntry:
         return addr
 
     @property
+    def zone(self):
+        return self.main_entry.Zoning
+
+    @property
     def map_lot(self):
         return self.main_entry.MapLot
+
+    @property
+    def num_units(self):
+        return self.main_entry.Interior_NumUnits
 
     @property
     def num_stories(self):
@@ -386,7 +391,22 @@ class CombinedEntry:
         if self.website_entry is not None:
             return self.website_entry.FirstFloor_GrossArea
 
-        raise MissingDataError('first_floor_area')
+        return None
+
+    @property
+    def total_rooms(self):
+        return self.main_entry.Interior_TotalRooms
+
+    @property
+    def bedrooms(self):
+        return self.main_entry.Interior_Bedrooms
+
+    @property
+    def property_class(self):
+        if self.main_entry.PropertyClass is None:
+            raise MissingDataError('PropertyClass')
+
+        return self.main_entry.PropertyClass
 
     def setWebsiteEntry(self, website_entry:WebsiteDatabaseEntry):
         self.website_entry = website_entry
@@ -404,7 +424,10 @@ class CombinedEntry:
             'id':               self.id,
             'building_id':      self.building_id,
             'address':          self.address,
+            'property_class':   self.property_class,
+            'zone':             self.zone,
             'map_lot':          self.map_lot,
+            'num_units':        self.num_units,
             'num_stories':      self.num_stories,
             'floor_location':   self.floor_location,
             'land_area':        self.land_area,

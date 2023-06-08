@@ -5,54 +5,51 @@ class Property:
     def __init__(self, **kwargs):
         kwargs = defaultdict(lambda: None, kwargs)
         self.id               = kwargs['id']
-        self.building_id      = kwargs['building_id']
         self.address          = kwargs['address']
+        self.property_class   = kwargs['property_class']
         self.map_lot          = kwargs['map_lot']
         self.num_stories      = kwargs['num_stories']
         self.floor_location   = kwargs['floor_location']
         self.land_area        = kwargs['land_area']
         self.living_area      = kwargs['living_area']
         self.year_built       = kwargs['year_built']
+        self.total_rooms      = kwargs['total_rooms']
+        self.bedrooms         = kwargs['bedrooms']
         self.first_floor_area = kwargs['first_floor_area']
 
     @classmethod
     def fromJson(cls, data):
         return cls(**data)
 
-    def isBuilding(self):
-        return (self.map_lot is None or self.map_lot == self.building_id)
-
-    def toBuilding(self):
-        if not self.isBuilding():
-            raise Exception("Cannot convert to building")
-
-        return Building(main_property=self)
-
-    def to_json(self):
+    def toJson(self):
         return {
             'id':               self.id,
-            'building_id':      self.building_id,
             'address':          self.address,
+            'property_class':   self.property_class,
             'map_lot':          self.map_lot,
             'num_stories':      self.num_stories,
             'floor_location':   self.floor_location,
             'land_area':        self.land_area,
             'living_area':      self.living_area,
             'year_built':       self.year_built,
+            'total_rooms':      self.total_rooms,
+            'bedrooms':         self.bedrooms,
             'first_floor_area': self.first_floor_area,
         }
 
 
 class Building:
     ## pylint: disable=too-many-public-methods
-    def __init__(self, *, main_property=None, properties=None, **kwargs):
+    def __init__(self, *, main_entry=None, properties=None, **kwargs):
         kwargs = defaultdict(lambda: None, kwargs)
         self.id                = kwargs['id']
         self.pid               = kwargs['pid']
+        self.object_id         = kwargs['object_id']
         self.street_number     = kwargs['street_number']
         self.street_name       = kwargs['street_name']
         self.full_address      = kwargs['full_address']
         self.zipcode           = kwargs['zipcode']
+        self.property_class    = kwargs['property_class']
         self._zone             = kwargs['zone']
         self._land_area        = kwargs['land_area']
         self._living_area      = kwargs['living_area']
@@ -68,8 +65,8 @@ class Building:
         self._first_floor_area = kwargs['first_floor_area']
         self._properties       = list(properties or [])
         self._aliases          = []
-        if main_property:
-            self.setMainProperty(main_property)
+        if main_entry:
+            self.setMainEntry(main_entry)
 
     @classmethod
     def fromJson(cls, data):
@@ -78,29 +75,30 @@ class Building:
 
         return cls(**data)
 
-    def setMainProperty(self, main_property):
-        """Set values that come from being the main property"""
+    def setMainEntry(self, main_entry):
+        """Set values that come from being the main entry"""
         if self.pid is not None:
-            raise Exception(f"Cannot set main property twice: Already set as {self.pid}")
+            raise Exception(f"Cannot set main entry twice: Already set as {self.pid}")
 
-        self.pid          = main_property.id
-        self._zone        = main_property.zone
-        self._land_area   = main_property.land_area
-        self._living_area = main_property.land_area
-        self.num_stories  = main_property.num_stories
-        self.num_units    = main_property.num_units
-        self._total_rooms = main_property.total_rooms
-        self._bedrooms    = main_property.bedrooms
+        self.pid            = main_entry.id
+        self.property_class = main_entry.property_class
+        self._zone          = main_entry.zone
+        self._land_area     = main_entry.land_area
+        self._living_area   = main_entry.living_area
+        self.num_stories    = main_entry.num_stories
+        self.num_units      = main_entry.num_units
+        self._total_rooms   = main_entry.total_rooms
+        self._bedrooms      = main_entry.bedrooms
 
     def addProperty(self, new_property):
-        self.properties.append(new_property)
+        self._properties.append(new_property)
 
     def addAlias(self, alias):
         self._aliases.append(alias)
 
     @property
     def properties(self):
-        return list(self._properties)
+        return tuple(self._properties)
 
     def set_properties(self, properties):
         self._properties = list(properties)
@@ -141,7 +139,7 @@ class Building:
 
         ## Sum up from properties
         if self._properties:
-            return sum([x.total_rooms for x in self._properties])
+            return sum([x.total_rooms or 0 for x in self._properties])
 
         return None
 
@@ -152,7 +150,7 @@ class Building:
 
         ## Sum up from properties
         if self._properties:
-            return sum([x.bedrooms for x in self._properties])
+            return sum([x.bedrooms or 0 for x in self._properties])
 
         return None
 
@@ -165,10 +163,11 @@ class Building:
 
         return None
 
-    def to_json(self):
+    def toJson(self):
         data = {
             'id':               self.id,
             'pid':              self.pid,
+            'property_class':   self.property_class,
             'street_number':    self.street_number,
             'street_name':      self.street_name,
             'zone':             self.zone,
@@ -187,8 +186,8 @@ class Building:
             'OK'              : bool(self.pid or self._properties),
         }
         if self._properties:
-            data['properties'] = [x.to_json() for x in self._properties]
+            data['properties'] = [x.toJson() for x in self._properties]
         if self._aliases:
-            data['aliases'] = [x.to_json() for x in self._aliases]
+            data['aliases'] = [x.toJson() for x in self._aliases]
 
         return data
