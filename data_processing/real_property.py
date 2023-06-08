@@ -6,6 +6,7 @@ class Property:
         kwargs = defaultdict(lambda: None, kwargs)
         self.id               = kwargs['id']
         self.address          = kwargs['address']
+        self.unit             = kwargs['unit']
         self.property_class   = kwargs['property_class']
         self.map_lot          = kwargs['map_lot']
         self.num_stories      = kwargs['num_stories']
@@ -25,6 +26,7 @@ class Property:
         return {
             'id':               self.id,
             'address':          self.address,
+            'unit':             self.unit,
             'property_class':   self.property_class,
             'map_lot':          self.map_lot,
             'num_stories':      self.num_stories,
@@ -54,7 +56,7 @@ class Building:
         self._land_area        = kwargs['land_area']
         self._living_area      = kwargs['living_area']
         self.num_stories       = kwargs['num_stories']
-        self.num_units         = kwargs['num_units']
+        self._num_units        = kwargs['num_units']
         self._total_rooms      = kwargs['total_rooms']
         self._bedrooms         = kwargs['bedrooms']
         self.location          = kwargs['location']
@@ -65,6 +67,7 @@ class Building:
         self._first_floor_area = kwargs['first_floor_area']
         self._properties       = list(properties or [])
         self._aliases          = []
+        self._duplicates       = []
         if main_entry:
             self.setMainEntry(main_entry)
 
@@ -78,7 +81,8 @@ class Building:
     def setMainEntry(self, main_entry):
         """Set values that come from being the main entry"""
         if self.pid is not None:
-            raise Exception(f"Cannot set main entry twice: Already set as {self.pid}")
+            self._duplicates.append(main_entry)
+            return
 
         self.pid            = main_entry.id
         self.property_class = main_entry.property_class
@@ -86,7 +90,7 @@ class Building:
         self._land_area     = main_entry.land_area
         self._living_area   = main_entry.living_area
         self.num_stories    = main_entry.num_stories
-        self.num_units      = main_entry.num_units
+        self._num_units     = main_entry.num_units
         self._total_rooms   = main_entry.total_rooms
         self._bedrooms      = main_entry.bedrooms
 
@@ -95,6 +99,9 @@ class Building:
 
     def addAlias(self, alias):
         self._aliases.append(alias)
+
+    def firstFloorProperties(self):
+        return tuple(filter(lambda x: x.floor_location == 1, self._properties))
 
     @property
     def properties(self):
@@ -133,6 +140,13 @@ class Building:
         return None
 
     @property
+    def num_units(self):
+        if self._num_units:
+            return self._num_units
+
+        return len(self._properties)
+
+    @property
     def total_rooms(self):
         if self._total_rooms is not None:
             return self._total_rooms
@@ -159,7 +173,11 @@ class Building:
         if self._first_floor_area is not None:
             return self._first_floor_area
         elif self._properties:
-            return self._properties[0].first_floor_area
+            props = self.firstFloorProperties()
+            try:
+                return sum([x.first_floor_area for x in self.firstFloorProperties()])
+            except:
+                pass
 
         return None
 
@@ -189,5 +207,7 @@ class Building:
             data['properties'] = [x.toJson() for x in self._properties]
         if self._aliases:
             data['aliases'] = [x.toJson() for x in self._aliases]
+        if self._duplicates:
+            data['duplicates'] = [x.toJson() for x in self._duplicates]
 
         return data

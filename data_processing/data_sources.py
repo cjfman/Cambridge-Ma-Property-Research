@@ -408,6 +408,10 @@ class CombinedEntry:
 
         return self.main_entry.PropertyClass
 
+    @property
+    def unit(self):
+        return self.main_entry.Unit
+
     def setWebsiteEntry(self, website_entry:WebsiteDatabaseEntry):
         self.website_entry = website_entry
         self._selfValidate()
@@ -417,13 +421,14 @@ class CombinedEntry:
         self._selfValidate()
 
     def isBuilding(self):
-        return (self.main_entry.MapLot is None)
+        return self.main_entry.isBuilding()
 
     def toJson(self):
         return {
             'id':               self.id,
             'building_id':      self.building_id,
             'address':          self.address,
+            'unit':             self.unit,
             'property_class':   self.property_class,
             'zone':             self.zone,
             'map_lot':          self.map_lot,

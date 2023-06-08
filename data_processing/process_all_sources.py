@@ -67,8 +67,8 @@ for main_entry in main_db.entries:
 
     building = building_map[entry.building_id]
     if entry.isBuilding():
-        #print(f"Setting property {entry.id} as main property for buliding {bulding.id}")
-        building.setMainProperty(entry)
+        #print(f"Setting property {entry.id} as main property for buliding {building.id}")
+        building.setMainEntry(entry)
     else:
         #print(f"Adding property {entry.id} to building {building.id}")
         building.addProperty(Property.fromJson(entry.toJson()))
