@@ -2,4 +2,5 @@ https://www.cambridgema.gov/propertydatabase/$ID
 https://raw.githubusercontent.com/cambridgegis/cambridgegis_data_assessing/main/FY2023/FY2023_Parcels/ASSESSING_PropertyDatabase_FY2023.csv
 https://github.com/cambridgegis/cambridgegis_data/raw/main/Address/Address_Points/ADDRESS_MasterAddressList.csv
 https://raw.githubusercontent.com/cambridgegis/cambridgegis_data/main/CDD/Zoning_Districts/CDD_ZoningDistricts.geojson
+https://raw.githubusercontent.com/cambridgegis/cambridgegis_data_address/main/Master_Address_Blocks/ADDRESS_MasterAddressBlocks.geojson
 curl -X POST -d 'm=GetDataListHtml&datatab=PropertyInfo&id=$ID' https://gis.cambridgema.gov/map/Services/SelectionPanel.ashx
