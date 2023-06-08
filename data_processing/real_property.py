@@ -117,7 +117,7 @@ class Building:
 
     @property
     def land_area(self):
-        if self._land_area is not None:
+        if self._land_area:
             return self._land_area
 
         ## Look for one in the properties
@@ -126,18 +126,18 @@ class Building:
             if areas:
                 return areas[0]
 
-        return None
+        return self._land_area
 
     @property
     def living_area(self):
-        if self._living_area is not None:
+        if self._living_area:
             return self._living_area
 
         ## Sum up living areas of the properties
         if self._properties:
             return sum([x.living_area for x in self._properties])
 
-        return None
+        return self._living_area
 
     @property
     def num_units(self):
@@ -159,14 +159,14 @@ class Building:
 
     @property
     def bedrooms(self):
-        if self._bedrooms is not None:
+        if self._bedrooms:
             return self._bedrooms
 
         ## Sum up from properties
         if self._properties:
             return sum([x.bedrooms or 0 for x in self._properties])
 
-        return None
+        return self._bedrooms
 
     @property
     def first_floor_area(self):

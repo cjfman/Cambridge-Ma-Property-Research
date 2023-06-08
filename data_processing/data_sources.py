@@ -438,6 +438,8 @@ class CombinedEntry:
             'land_area':        self.land_area,
             'living_area':      self.living_area,
             'year_built':       self.year_built,
+            'total_rooms':      self.total_rooms,
+            'bedrooms':         self.bedrooms,
             'first_floor_area': self.first_floor_area,
         }
 
