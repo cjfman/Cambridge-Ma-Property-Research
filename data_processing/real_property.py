@@ -133,6 +133,16 @@ class Building:
     def setBlock(self, block):
         self.block = block
 
+    def calculateDimensions(self):
+        try:
+            return {
+                'FAR':  round(self.living_area / self.land_area, 2),
+                'LADU': round(self.land_area / self.num_units, 2),
+                'OPEN': round(self.open_area * 100 / self.land_area, 2),
+            }
+        except:
+            return None
+
     @property
     def properties(self):
         return tuple(self._properties)
@@ -154,9 +164,14 @@ class Building:
                 area = areas[0]
                 self._cache['land_area'] = area
                 if self._land_area and self._land_area != area:
+                    self._land_area = area
                     self._conflicts['land_area'] = area
 
         return self._land_area
+
+    @property
+    def open_area(self):
+        return self.land_area - self.first_floor_area
 
     @property
     def living_area(self):
@@ -166,9 +181,15 @@ class Building:
         ## Sum up living areas of the properties
         if self._properties:
             living_area = sum([x.living_area for x in self._properties])
-            if self._living_area and self._living_area != living_area:
-                self._conflicts['living_area'] = self._living_area
+            if self._living_area != living_area:
+                ## Mark conflict
+                if self._living_area:
+                    self._conflicts['living_area'] = self._living_area
+
                 self._living_area = living_area
+
+            ## Cache result
+            self._cache['living_area'] = self._living_area
 
         return self._living_area
 
@@ -187,9 +208,15 @@ class Building:
         ## Sum up toal rooms of the properties
         if self._properties:
             total_rooms = sum([x.total_rooms or 0 for x in self._properties])
-            if self._total_rooms and self._total_rooms != total_rooms:
-                self._conflicts['total_rooms'] = self._total_rooms
+            if self._total_rooms != total_rooms:
+                ## Mark conflict
+                if self._total_rooms:
+                    self._conflicts['total_rooms'] = self._total_rooms
+
                 self._total_rooms = total_rooms
+
+            ## Cache result
+            self._cache['total_rooms'] = total_rooms
 
         return self._total_rooms
 
@@ -201,16 +228,22 @@ class Building:
         ## Sum up bedrooms of the properties
         if self._properties:
             bedrooms = sum([x.bedrooms or 0 for x in self._properties])
-            if self._bedrooms and self._bedrooms != bedrooms:
-                self._conflicts['bedrooms'] = self._bedrooms
+            ## Mark conflict
+            if self._bedrooms != bedrooms:
+                if self._bedrooms:
+                    self._conflicts['bedrooms'] = self._bedrooms
+
                 self._bedrooms = bedrooms
+
+            ## Cache result
+            self._cache['bedrooms'] = bedrooms
 
         return self._bedrooms
 
     @property
     def first_floor_area(self):
         if self._properties:
-            return sum([x.first_floor_area  or 0 for x in self.firstFloorProperties()])
+            return sum([x.first_floor_area or 0 for x in self.firstFloorProperties()])
 
         return self._first_floor_area
 
@@ -233,6 +266,7 @@ class Building:
             'location':         self.location,
             'neighborhood':     self.neighborhood,
             'first_floor_area': self.first_floor_area,
+            'dimensions':       self.calculateDimensions(),
             'OK'              : self.status(),
         }
         if self._properties:
