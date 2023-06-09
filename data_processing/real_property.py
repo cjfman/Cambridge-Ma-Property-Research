@@ -53,7 +53,8 @@ class Building:
         self.full_address      = kwargs['full_address']
         self.zipcode           = kwargs['zipcode']
         self.property_class    = kwargs['property_class']
-        self._zone             = kwargs['zone']
+        self.zone              = kwargs['zone']
+        self.block             = kwargs['block']
         self._land_area        = kwargs['land_area']
         self._living_area      = kwargs['living_area']
         self.num_stories       = kwargs['num_stories']
@@ -63,8 +64,6 @@ class Building:
         self.location          = kwargs['location']
         self.neighborhood      = kwargs['neighborhood']
         self.block             = kwargs['block']
-        self.block_group       = kwargs['block_group']
-        self.tract             = kwargs['tract']
         self._first_floor_area = kwargs['first_floor_area']
         self._properties       = list(properties or [])
         self._aliases          = []
@@ -88,7 +87,7 @@ class Building:
         self.pid            = main_entry.id
         self.property_class = main_entry.property_class
         self.address        = main_entry.address
-        self._zone          = main_entry.zone
+        #self._zone          = main_entry.zone
         self._land_area     = main_entry.land_area
         self._living_area   = main_entry.living_area
         self.num_stories    = main_entry.num_stories
@@ -109,6 +108,12 @@ class Building:
     def status(self):
         return bool(self.pid or self._properties)
 
+    def setZone(self, zone):
+        self.zone = zone
+
+    def setBlock(self, block):
+        self.block = block
+
     @property
     def properties(self):
         return tuple(self._properties)
@@ -117,10 +122,6 @@ class Building:
         self._properties = list(properties)
 
     ## For most properties, prefer the object member, otherwise use the backup source
-    @property
-    def zone(self):
-        return self._zone
-
     @property
     def land_area(self):
         if self._land_area:
@@ -177,7 +178,6 @@ class Building:
     @property
     def first_floor_area(self):
         if self._properties:
-            props = self.firstFloorProperties()
             try:
                 return sum([x.first_floor_area for x in self.firstFloorProperties()])
             except:
@@ -194,6 +194,7 @@ class Building:
             'street_number':    self.street_number,
             'street_name':      self.street_name,
             'zone':             self.zone,
+            'block':            self.block,
             'land_area':        self.land_area,
             'living_area':      self.living_area,
             'num_stories':      self.num_stories,
@@ -202,9 +203,6 @@ class Building:
             'bedrooms':         self.bedrooms,
             'location':         self.location,
             'neighborhood':     self.neighborhood,
-            'block':            self.block,
-            'block_group':      self.block_group,
-            'tract':            self.tract,
             'first_floor_area': self.first_floor_area,
             'OK'              : self.status(),
         }

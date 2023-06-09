@@ -288,9 +288,6 @@ class MasterListEntry(Entry):
             'location':      (self.lon, self.lat),
             'zipcode':       self.Zip_Code,
             'neighborhood':  self.Neighborhood,
-            'block':         self.Block,
-            'block_group':   self.BLKGRP,
-            'tract':         self.Tract,
         }
 
 
