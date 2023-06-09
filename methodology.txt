@@ -1,0 +1,43 @@
+Cleaning the data
+
+There are a meriod of data sources that describe Cambridge's property. I used this method for determining what is authoritative.
+
+Definitions:
+- Property: An occupiable unit or set of units that share an address.
+- Building: A single lot on the map that has one or more addresses associated with it. It may or may not contain some number of literal buildings. A building may have multiple properties associated with it, or it may be the primary property.
+- Primary Property: The main property of a building. It may either describe the one and only unit in the building, or contain information on every unit in the building.
+- Unit/Sub Property: Any property that describes a single unit within a multi-unit building.
+
+Idenfifying Buildings:
+The ADDRESS_MasterAddressList.csv file is a list of all addresses in the city, which I used as the authority on addresses and associated buildings. Most of these entries are associated with a building. Each row has a MapLot ID, which identifies what plot of land is associated with this address. More than one address can have the same MapLot ID. Note that this could either be a result of there being more than one building on the lot, or different units in the same building having different addresses. For the purpose of this project, there will be no distinction. Buildings that neither have properties nor are the primary property themselves are excluded from this analysis.
+
+Data of particular interest
+- OBJECTID: Unique identifier of an address
+- ml: The MapLot ID. Used to find associated properties and GIS location
+- StNm,StName,Full_Addr: The actual address of the building
+- lon,lat: Global coordinates
+- Zip_Code,Neighborhood: Other location data
+
+Idenfifying Properties:
+The ASSESSING_PropertyDatabase_FY2023.csv contains a list of all properties for the purpose of tax assessment, which I used as the authority on properties. Every property maps to a single building. Some properties describe the entire building, including number of units and total floor space. This is known as the primary property. Others just describe single units within the building. Any given building will either have a single primary property, a list of individual unit properties, or both.
+
+Data of particular interest
+- PID: The ID of the property
+- GISID: Matches the MapLot ID of a building
+- MapLot: The MapLot ID of this property. For a primary property, this will match the GISID. For a unit-property, the GISID will be the prefix.
+- Address,Unit: The actual address of the property
+- PropertyClass: The type of property (e.g. condo, single family)
+- Zoning: The unofficial zone. It is not authoritative and isn't always populated
+- LandArea: The area of the plot of land. A primary property will nearly always have this value. Unit-properties don't always have this value. Important for calculating FAR and open space.
+- FloorLocation: The location of the property within the building. Important for calculating open space.
+- NumUnits: The number of units in the building. Important for calculating LA/Unit ratio
+- LivingArea: The area of the property that is occupiable. Important for calculating FAR.
+
+Land Area:
+I used the GIS database as the authority on land area for a given building/property, as neither the autority on buildings nor properties consistently had that information.Properties that shared a building all had the same land area.
+
+First Floor Area:
+The best source I could find that consistently had first floor area was the city's property database website, https://www.cambridgema.gov/propertydatabase. It seems to be populated with data from the authority on properties, but that didn't have first floor area for some reason. To calculate the first floor area of a building, I summed the values from all the containing properties. This sum would override a value reported from the primary property.
+
+GeoData:
+The city has extensive GIS data which can be used to determin the zoning district or block of a given property.
