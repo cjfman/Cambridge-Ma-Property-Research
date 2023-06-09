@@ -25,12 +25,18 @@ website_db = ds.WebsiteDatabase(website_path, verbose=True)
 gis_db     = ds.GisDatabase(gis_path,         verbose=True)
 
 ## Create buildings
-buildings = [Building.fromJson(x.toJson()) for x in master_db]
-building_map = {x.id: x for x in buildings}
-for b in buildings:
-    if building_map[b.id].object_id != b.object_id:
+all_buildings = [Building.fromJson(x.toJson()) for x in master_db]
+building_map = {}
+for b in all_buildings:
+    if b.id not in building_map:
+        building_map[b.id] = b
+    elif building_map[b.id].object_id != b.object_id:
         print(f"Found an alias for building {b.id}: {b.object_id}")
         building_map[b.id].addAlias(b)
+    else:
+        print(f"Dropping duplicate for building {b.id}: {b.object_id}")
+
+buildings = building_map.values()
 
 
 ## Attempt to combine property sources
@@ -73,7 +79,12 @@ for main_entry in main_db.entries:
 
 empty_buildings = tuple([x for x in buildings if not x.status()])
 
-print(f"Processed {count} properties and {len(buildings)} buildings")
+building_count = len(buildings)
+all_building_count = len(all_buildings)
+alias_count = all_building_count - building_count
+print(f"Processed {count} properties and {building_count} buildings")
+if alias_count:
+    print(f"Found {alias_count} building address aliases")
 if missing_building:
     print(f"Missing building: {len(missing_building)}")
 if missing_web:

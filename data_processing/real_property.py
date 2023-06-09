@@ -47,6 +47,7 @@ class Building:
         self.id                = kwargs['id']
         self.pid               = kwargs['pid']
         self.object_id         = kwargs['object_id']
+        self.address           = kwargs['address']
         self.street_number     = kwargs['street_number']
         self.street_name       = kwargs['street_name']
         self.full_address      = kwargs['full_address']
@@ -86,6 +87,7 @@ class Building:
 
         self.pid            = main_entry.id
         self.property_class = main_entry.property_class
+        self.address        = main_entry.address
         self._zone          = main_entry.zone
         self._land_area     = main_entry.land_area
         self._living_area   = main_entry.living_area
@@ -93,6 +95,7 @@ class Building:
         self._num_units     = main_entry.num_units
         self._total_rooms   = main_entry.total_rooms
         self._bedrooms      = main_entry.bedrooms
+        self._first_floor_area = main_entry.first_floor_area
 
     def addProperty(self, new_property):
         self._properties.append(new_property)
@@ -189,6 +192,7 @@ class Building:
             'id':               self.id,
             'pid':              self.pid,
             'property_class':   self.property_class,
+            'address':          self.address,
             'street_number':    self.street_number,
             'street_name':      self.street_name,
             'zone':             self.zone,
