@@ -176,16 +176,14 @@ class Building:
 
     @property
     def first_floor_area(self):
-        if self._first_floor_area is not None:
-            return self._first_floor_area
-        elif self._properties:
+        if self._properties:
             props = self.firstFloorProperties()
             try:
                 return sum([x.first_floor_area for x in self.firstFloorProperties()])
             except:
                 pass
 
-        return None
+        return self._first_floor_area
 
     def toJson(self):
         data = {
