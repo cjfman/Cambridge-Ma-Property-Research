@@ -1,5 +1,14 @@
 from collections import defaultdict
 
+class Namespace:
+    def __init__(self, **kwargs):
+        self.attrs = dict(kwargs or {}) ## Copy
+        for attr, val in self.attrs.items():
+            setattr(self, attr, val)
+
+    def toJson(self):
+        return dict(self.attrs)
+
 class Property:
     ## pylint: disable=too-many-public-methods
     def __init__(self, **kwargs):
@@ -77,6 +86,10 @@ class Building:
     def fromJson(cls, data):
         if 'properties' in data:
             data['properties'] = [Property.fromJson(x) for x in data['properties']]
+        if 'aliases' in data:
+            data['aliases'] = Namespace(**data['aliases'])
+        if 'duplicates' in data:
+            data['duplicates'] = Namespace(**data['duplicates'])
 
         return cls(**data)
 
