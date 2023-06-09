@@ -1,5 +1,6 @@
 *.swp
 *.swo
+*.log
 GIS/
 by_address/
 by_id/
