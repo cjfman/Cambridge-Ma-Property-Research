@@ -330,6 +330,9 @@ class CombinedEntry:
         self.gis_entry: GisEntry                 = gis_entry
         self._selfValidate()
 
+    def buildingIdFromMapLot(self):
+        return "-".join(self.main_entry.MapLot.split('-')[:2])
+
     @property
     def id(self):
         return self.main_entry.getPropertyId()

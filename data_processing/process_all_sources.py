@@ -66,12 +66,16 @@ for main_entry in main_db.entries:
 
 
     ## Building
-    if entry.building_id not in building_map:
+    building = None
+    if entry.building_id in building_map:
+        building = building_map[entry.building_id]
+    elif entry.buildingIdFromMapLot() in building_map:
+        building = building_map[entry.buildingIdFromMapLot()]
+    else:
         print(f"Property {entry.id} has no building. Couldn't find {entry.building_id}")
         missing_building.append(entry)
         continue
 
-    building = building_map[entry.building_id]
     if entry.isBuilding():
         building.setMainEntry(entry)
     else:
