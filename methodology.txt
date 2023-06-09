@@ -34,7 +34,7 @@ Data of particular interest
 - LivingArea: The area of the property that is occupiable. Important for calculating FAR.
 
 Land Area:
-I used the GIS database as the authority on land area for a given building/property, as neither the autority on buildings nor properties consistently had that information.Properties that shared a building all had the same land area.
+I used the GIS database as the authority on land area for a given building/property, as neither the autority on buildings nor properties consistently had that information. Properties that shared a building all had the same land area.
 
 First Floor Area:
 The best source I could find that consistently had first floor area was the city's property database website, https://www.cambridgema.gov/propertydatabase. It seems to be populated with data from the authority on properties, but that didn't have first floor area for some reason. To calculate the first floor area of a building, I summed the values from all the containing properties. This sum would override a value reported from the primary property.

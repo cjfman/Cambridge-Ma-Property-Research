@@ -68,6 +68,8 @@ class Building:
         self._properties       = list(properties or [])
         self._aliases          = []
         self._duplicates       = []
+        self._conflicts        = {}
+        self._cache            = {}
         if main_entry:
             self.setMainEntry(main_entry)
 
@@ -109,7 +111,11 @@ class Building:
         return bool(self.pid or self._properties)
 
     def setZone(self, zone):
-        self.zone = zone
+        ## Set and mark confict if it's different
+        if self.zone is not None and self.zone != zone:
+            self._conflicts['zone'] = self.zone
+        elif self.zone is None:
+            self.zone = zone
 
     def setBlock(self, block):
         self.block = block
@@ -124,25 +130,32 @@ class Building:
     ## For most properties, prefer the object member, otherwise use the backup source
     @property
     def land_area(self):
-        if self._land_area:
-            return self._land_area
+        if 'land_area' in self._cache:
+            return self._cache['land_area']
 
         ## Look for one in the properties
         if self._properties:
             areas = [x.land_area for x in self._properties if x.land_area is not None]
             if areas:
-                return areas[0]
+                ## Cache result and mark conflict if it's different
+                area = areas[0]
+                self._cache['land_area'] = area
+                if self._land_area and self._land_area != area:
+                    self._conflicts['land_area'] = area
 
         return self._land_area
 
     @property
     def living_area(self):
-        if self._living_area:
-            return self._living_area
+        if 'living_area' in self._cache:
+            return self._cache['living_area']
 
         ## Sum up living areas of the properties
         if self._properties:
-            return sum([x.living_area for x in self._properties])
+            living_area = sum([x.living_area for x in self._properties])
+            if self._living_area and self._living_area != living_area:
+                self._conflicts['living_area'] = self._living_area
+                self._living_area = living_area
 
         return self._living_area
 
@@ -155,33 +168,36 @@ class Building:
 
     @property
     def total_rooms(self):
-        if self._total_rooms is not None:
-            return self._total_rooms
+        if 'total_rooms' in self._cache:
+            return self._cache['total_rooms']
 
-        ## Sum up from properties
+        ## Sum up toal rooms of the properties
         if self._properties:
-            return sum([x.total_rooms or 0 for x in self._properties])
+            total_rooms = sum([x.total_rooms or 0 for x in self._properties])
+            if self._total_rooms and self._total_rooms != total_rooms:
+                self._conflicts['total_rooms'] = self._total_rooms
+                self._total_rooms = total_rooms
 
-        return None
+        return self._total_rooms
 
     @property
     def bedrooms(self):
-        if self._bedrooms:
-            return self._bedrooms
+        if 'bedrooms' in self._cache:
+            return self._cache['bedrooms']
 
-        ## Sum up from properties
+        ## Sum up bedrooms of the properties
         if self._properties:
-            return sum([x.bedrooms or 0 for x in self._properties])
+            bedrooms = sum([x.bedrooms or 0 for x in self._properties])
+            if self._bedrooms and self._bedrooms != bedrooms:
+                self._conflicts['bedrooms'] = self._bedrooms
+                self._bedrooms = bedrooms
 
         return self._bedrooms
 
     @property
     def first_floor_area(self):
         if self._properties:
-            try:
-                return sum([x.first_floor_area for x in self.firstFloorProperties()])
-            except:
-                pass
+            return sum([x.first_floor_area  or 0 for x in self.firstFloorProperties()])
 
         return self._first_floor_area
 
@@ -212,5 +228,7 @@ class Building:
             data['aliases'] = [x.toJson() for x in self._aliases]
         if self._duplicates:
             data['duplicates'] = [x.toJson() for x in self._duplicates]
+        if self._conflicts:
+            data['conflicts'] = self._conflicts
 
         return data

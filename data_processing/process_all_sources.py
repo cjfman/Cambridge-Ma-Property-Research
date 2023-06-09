@@ -9,7 +9,7 @@ import data_sources as ds
 import gis
 from real_property import Property, Building
 
-DO_GIS=True
+DO_GIS=False
 
 
 ## All file paths
