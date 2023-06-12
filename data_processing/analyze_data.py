@@ -6,15 +6,32 @@ import os
 from collections import defaultdict, namedtuple
 from statistics import mean, median, pstdev
 
+import numpy as np
+
 import gis
 
 ROOT            = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON         = os.path.join(ROOT, "geojson")
+STATS           = os.path.join(ROOT, "stats")
 data_path       = os.path.join(ROOT, "all_data.json")
 blocks_path     = os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson")
-blocks_out_path = os.path.join(ROOT, "block_dimension_data.csv")
+blocks_out_path = os.path.join(STATS, "blocks_commercial_bb_percentile.csv")
 
-Stats = namedtuple('Stats', ['mean', 'median', 'stddev'])
+Stats = namedtuple('Stats', ['mean', 'median', 'stddev', 'quantiles'])
+ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
+ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
+ZONES_BIZ_LOW = ("BA", "BA-1", "BA-2", "BA-3", "BA-4", "BC", "O-1")
+ZONES_BIZ_HIGH = ("BB", "BB-1", "BB-2", "O-2", "O-3") #, "O-2A", "O-3A", "MXD", "ASD")
+ZONES_IND = ("IA", "IA-1" "IA-2", "IB", "IB-1", "IB-2", "IC")
+
+FIRST_ST  = (483, 526, 547, 566, 571, 505, 468)
+COURT     = (502, 479)
+KENDAL    = (680,)
+MID_MASS  = (524, 539, 493, 490, 501, 506)
+
+ZONES     = ZONES_BIZ_HIGH + ('C-2B',)
+NO_BLOCK  = COURT + KENDAL
+YES_BLOCK = []
 
 
 def main():
@@ -28,7 +45,10 @@ def main():
 
 
 def getStats(data, res=2):
-    return Stats(*[round(x, res) for x in (mean(data), median(data), pstdev(data))])
+    stats = [round(x, res) for x in (mean(data), median(data), pstdev(data))]
+    stats.append([round(x, res) for x in np.quantile(data, q=np.arange(.01, 1.00, .01))])
+    #stats.append([round(x, res) for x in np.quantile(data, q=np.arange(.25, 1.00, .25))])
+    return Stats(*stats)
 
 
 def writeCsv(rows, path):
@@ -47,14 +67,18 @@ def calcBlockStats(data, path):
 
     ## Go through each building and get the dimensions
     for b in data['buildings']:
-        if not b['block'] or 'dimensions' not in b:
+        block = b['block']
+        if (not block or 'dimensions' not in b or b['zone'] not in ZONES) \
+                and block not in YES_BLOCK:
+            continue
+
+        if block in NO_BLOCK:
             continue
 
         dim = b['dimensions']
         if not dim or dim['OPEN'] < 0:
             continue
 
-        block = b['block']
         block_far[block].append(dim['FAR'])
         block_ladu[block].append(dim['LADU'])
         block_os[block].append(dim['OPEN'])
@@ -71,7 +95,7 @@ def calcBlockStats(data, path):
         far_stats  = block_far_stats[block]
         ladu_stats = block_ladu_stats[block]
         os_stats   = block_os_stats[block]
-        rows.append([
+        row = [
             geo_id,
             block,
             far_stats.mean,
@@ -83,14 +107,18 @@ def calcBlockStats(data, path):
             os_stats.mean,
             os_stats.median,
             os_stats.stddev,
-        ])
+        ]
+        row += list(far_stats.quantiles)
+        rows.append(row)
 
     rows.sort()
-    rows = [['id', 'block',
+    columns = ['id', 'block',
         'far_mean',  'far_median',  'far_stddev',
         'ladu_mean', 'ladu_median', 'ladu_stddev',
         'os_mean',   'os_median',   'os_stddev',
-    ]] + rows
+    ]
+    columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
+    rows = [columns] + rows
 
     return rows
 
