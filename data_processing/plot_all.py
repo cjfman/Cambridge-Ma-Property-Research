@@ -13,7 +13,7 @@ OVERWRITE   = False
 
 color_bin_3_5 = [round(i*3/9, 1) for i in range(8)] + [3.5]
 color_bin_5 = [round(i*3/9, 1) for i in range(8)] + [5]
-color_bin_5_5 = [round(i*3/9, 1) for i in range(8)] + [5_5]
+color_bin_5_5 = [round(i*5/9, 1) for i in range(8)] + [5.5]
 
 default = {
     'color': 'YlGnBu',
