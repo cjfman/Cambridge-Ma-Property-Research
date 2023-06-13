@@ -21,7 +21,7 @@ Stats = namedtuple('Stats', ['mean', 'median', 'stddev', 'quantiles'])
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
 ZONES_BIZ_LOW = ("BA", "BA-1", "BA-2", "BA-3", "BA-4", "BC", "O-1")
-ZONES_BIZ_HIGH = ("BB", "BB-1", "BB-2", "O-2", "O-3") #, "O-2A", "O-3A", "MXD", "ASD")
+ZONES_BIZ_HIGH = ("BB", "BB-1", "BB-2", "O-2", "O-3", "C-2B") #, "O-2A", "O-3A", "MXD", "ASD")
 ZONES_IND = ("IA", "IA-1" "IA-2", "IB", "IB-1", "IB-2", "IC")
 
 FIRST_ST  = (483, 526, 547, 566, 571, 505, 468)
@@ -29,7 +29,7 @@ COURT     = (502, 479)
 KENDAL    = (680,)
 MID_MASS  = (524, 539, 493, 490, 501, 506)
 
-ZONES     = ZONES_BIZ_HIGH + ('C-2B',)
+ZONES     = ZONES_BIZ_HIGH
 NO_BLOCK  = COURT + KENDAL
 YES_BLOCK = []
 
