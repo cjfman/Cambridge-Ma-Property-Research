@@ -3,13 +3,15 @@ from shapely.geometry import shape, Point
 
 class GisGeoJson:
     def __init__(self, path, *, secondary_id_key=None):
-        self.geojson = None
+        self.geojson          = None
         self.secondary_id_key = secondary_id_key
-        self.id_to_secondary = {}
-        self.secondary_to_id = {}
+        self.id_to_secondary  = {}
+        self.secondary_to_id  = {}
+        self.features         = {}
         with open(path) as f:
             self.geojson = json.load(f)
 
+        self.features = { x['id']: x for x in self.geojson['features'] }
         if self.secondary_id_key is not None:
             for feature in self.geojson['features']:
                 sec_id = feature['properties'][self.secondary_id_key]
@@ -41,6 +43,13 @@ class GisGeoJson:
             return None
 
         return self.secondary_to_id[sec_id]
+
+    def setProperty(self, key, val, geo_id=None):
+        if geo_id is not None:
+            self.features[geo_id]['properties'][key] = val
+        else:
+            for f in self.features.values():
+                f['properties'][key] = val
 
 
 class ZoningDistricts(GisGeoJson):
