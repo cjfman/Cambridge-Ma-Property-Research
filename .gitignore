@@ -6,3 +6,4 @@ by_address/
 by_id/
 gis_property_info/
 */__pycache__
+*.tgz
