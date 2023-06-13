@@ -7,17 +7,18 @@ import pandas as pd
 
 ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
-MAPS        = os.path.join(ROOT, "maps_all")
+MAPS        = os.path.join(ROOT, "maps")
 STATS       = os.path.join(ROOT, "stats")
 OVERWRITE   = False
 
 color_bin_3_5 = [round(i*3/9, 1) for i in range(8)] + [3.5]
 color_bin_5 = [round(i*3/9, 1) for i in range(8)] + [5]
 color_bin_5_5 = [round(i*5/9, 1) for i in range(8)] + [5.5]
+color_bin_8 = [round(i*6/9, 1) for i in range(8)] + [8.5]
 
 default = {
-    'color': 'YlGnBu',
-    'bins': color_bin_5,
+    'color': 'RdYlBu',
+    #'bins': color_bin_5,
     'geo_path': os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson"),
 }
 
@@ -29,6 +30,7 @@ data_sets = [
         'data_path': os.path.join(STATS, "lots_residential.csv"),
         'out_path': os.path.join(MAPS, "lots_residential.html"),
         'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
+        'bins': color_bin_5,
     },
     {
         'name': "Residential and BA Lots",
@@ -36,6 +38,7 @@ data_sets = [
         'data_path': os.path.join(STATS, "lots_low.csv"),
         'out_path': os.path.join(MAPS, "lots_low.html"),
         'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
+        'bins': color_bin_5,
     },
 
     ## Residential
@@ -112,6 +115,16 @@ data_sets = [
         'legend': 'FAR 90th Percentile',
         'data_path': os.path.join(STATS, "blocks_commercial_bb_percentile.csv"),
         'out_path': os.path.join(MAPS, "blocks_commercial_bb_90.html"),
+        'bins': color_bin_5_5,
+    },
+
+    ## All
+    {
+        'name': "All Mean",
+        'column': 'far_mean',
+        'legend': 'FAR Mean',
+        'data_path': os.path.join(STATS, "all_percentile.csv"),
+        'out_path': os.path.join(MAPS, "all_mean.html"),
         'bins': color_bin_5_5,
     },
 ]

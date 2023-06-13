@@ -15,7 +15,7 @@ GEOJSON         = os.path.join(ROOT, "geojson")
 STATS           = os.path.join(ROOT, "stats")
 data_path       = os.path.join(ROOT, "all_data.json")
 blocks_path     = os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson")
-blocks_out_path = os.path.join(STATS, "blocks_commercial_bb_percentile.csv")
+blocks_out_path = os.path.join(STATS, "all_percentile.csv")
 
 Stats = namedtuple('Stats', ['mean', 'median', 'stddev', 'quantiles'])
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
@@ -29,9 +29,10 @@ COURT     = (502, 479)
 KENDAL    = (680,)
 MID_MASS  = (524, 539, 493, 490, 501, 506)
 
-ZONES     = ZONES_BIZ_HIGH
-NO_BLOCK  = COURT + KENDAL
+ZONES     = []
+NO_BLOCK  = [] #COURT
 YES_BLOCK = []
+MAX_FAR = 5.5
 
 
 def main():
@@ -68,15 +69,19 @@ def calcBlockStats(data, path):
     ## Go through each building and get the dimensions
     for b in data['buildings']:
         block = b['block']
-        if (not block or 'dimensions' not in b or b['zone'] not in ZONES) \
-                and block not in YES_BLOCK:
+        dim = b['dimensions']
+        if not dim or dim['OPEN'] < 0:
+            continue
+
+        exclude = not block \
+            or 'dimensions' not in b \
+            or (ZONES and b['zone'] not in ZONES) \
+            or dim['FAR'] > MAX_FAR
+
+        if exclude and block not in YES_BLOCK:
             continue
 
         if block in NO_BLOCK:
-            continue
-
-        dim = b['dimensions']
-        if not dim or dim['OPEN'] < 0:
             continue
 
         block_far[block].append(dim['FAR'])
