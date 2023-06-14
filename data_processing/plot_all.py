@@ -2,6 +2,7 @@
 
 ## pylint: disable=too-many-locals
 
+import math
 import os
 
 import folium
@@ -18,7 +19,7 @@ ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
 MAPS        = os.path.join(ROOT, "maps")
 STATS       = os.path.join(ROOT, "stats")
-OVERWRITE   = False
+OVERWRITE   = True
 
 color_bin_3_5 = [round(i*3/9, 1) for i in range(8)] + [3.5]
 color_bin_5 = [round(i*3/9, 1) for i in range(8)] + [5]
@@ -136,7 +137,6 @@ data_sets = [
         'data_path': os.path.join(STATS, "all_percentile.csv"),
         'out_path': os.path.join(MAPS, "all_mean.html"),
         'bins': color_bin_5_5,
-        'overwrite': True,
     },
     {
         'name': "All 75th Percentile",
@@ -213,7 +213,7 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kw
 
     print(f"Reading {geo_path}")
     geojson = gis.GisGeoJson(geo_path)
-    gradient = cs.ColorGradient(cs.BlueRedYellow, int(values.max()))
+    gradient = cs.ColorGradient(cs.BlueRedYellow, int(values.max()), scale_fn=lambda x: math.log(1 + x))
 
     geojson.setProperty(column, "N/A")
     for i, row in data.iterrows():
@@ -237,7 +237,9 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kw
 
     ## Load template
     if template is not None:
-        key_values = [float(x) for x in np.arange(gradient.min, gradient.max, 0.5)] + [gradient.max]
+        key_values = list(np.arange(gradient.min, 3, 0.5))
+        key_values += list(np.arange(3, gradient.max, 1))
+        key_values = [float(x) for x in key_values] + [gradient.max]
         color_key = makeColorKey(name, gradient, values=key_values)
         template = template.replace("{{SVG}}", color_key)
         macro = MacroElement()
