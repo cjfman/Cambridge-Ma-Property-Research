@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
+## pylint: disable=too-many-locals
+
 import os
 
 import folium
 import pandas as pd
 
-import colors
+from branca.element import Template, MacroElement
+
+import color_schemes as cs
 import gis
 
 ROOT        = "/home/charles/Projects/cambridge_property_db/"
@@ -23,6 +27,7 @@ default = {
     'color': 'RdYlBu',
     #'bins': color_bin_5,
     'geo_path': os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson"),
+    'overwrite': False,
 }
 
 data_sets = [
@@ -129,6 +134,7 @@ data_sets = [
         'data_path': os.path.join(STATS, "all_percentile.csv"),
         'out_path': os.path.join(MAPS, "all_mean.html"),
         'bins': color_bin_5_5,
+        'overwrite': True,
     },
     {
         'name': "All 75th Percentile",
@@ -157,14 +163,19 @@ data_sets = [
 ]
 
 def main():
-    for data_set in data_sets:
-        if not OVERWRITE and os.path.isfile(data_set['out_path']):
-            continue
+    template = None
+    with open(os.path.join(ROOT, "templates/map.html")) as f:
+        template = f.read()
 
+    for data_set in data_sets:
         override = dict(default)
         override.update(data_set)
+        overwrite = (OVERWRITE or override['overwrite'])
+        if not overwrite and os.path.isfile(data_set['out_path']):
+            continue
+
         #plotChoropleth(**override)
-        plotGeoJson(**override)
+        plotGeoJson(template=template, **override)
 
 
 def plotChoropleth(name, geo, out_path, data_path, column, color, legend=None, bins=None):
@@ -192,14 +203,7 @@ def plotChoropleth(name, geo, out_path, data_path, column, color, legend=None, b
     print(f"Wrote to {out_path}")
 
 
-def noThrow(values, key):
-    if key not in values:
-        return None
-
-    return values[key]
-
-
-def plotGeoJson(name, geo_path, out_path, data_path, column, **kwargs):
+def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kwargs):
     print(f"Generating {name}")
     print(f"Reading {data_path}")
     data = pd.read_csv(data_path, index_col='id')
@@ -207,7 +211,7 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, **kwargs):
 
     print(f"Reading {geo_path}")
     geojson = gis.GisGeoJson(geo_path)
-    gradient = colors.ColorGradient(colors.BlueRedYellow, int(values.max()))
+    gradient = cs.ColorGradient(cs.BlueRedYellow, int(values.max()))
 
     geojson.setProperty(column, "N/A")
     for i, row in data.iterrows():
@@ -224,12 +228,45 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, **kwargs):
 
     ## Make map
     m = folium.Map(location=[42.378, -71.11], zoom_start=14)
-    geo = folium.GeoJson(geojson.geojson, style_function=style_function)
-    #folium.GeoJsonPopup(fields=[column], aliases=['FAR']).add_to(geo)
+    geo = folium.GeoJson(geojson.geojson, name=name, style_function=style_function)
     folium.GeoJsonTooltip(fields=[column], aliases=['FAR'], sticky=False).add_to(geo)
     geo.add_to(m)
+    folium.LayerControl(position='topleft', collapsed=False).add_to(m)
+
+    ## Load template
+    if template is not None:
+        color_key = makeColorKey(gradient)
+        template = template.replace("{{SVG}}", color_key)
+        macro = MacroElement()
+        macro._template = Template(template) ## pylint: disable=protected-access
+        m.get_root().add_child(macro)
+
     m.save(out_path)
     print(f"Wrote to {out_path}")
+
+
+def noThrow(values, key):
+    if key not in values:
+        return None
+
+    return values[key]
+
+
+def htmlElemGen(tag, data='', **kwargs):
+    attrs = " ".join([f'{k.replace("_", "-")}="{v}"' for k, v in kwargs.items()])
+    return f'<{tag} {attrs}>{data}</{tag}>'
+
+
+def makeColorKey(colors, cbox_h=10, cbox_w=80, tick_h=2):
+    color_tag = "color-scheme-red"
+    gradient_html = colors.toHtmlLinearGradient(color_tag)
+    box_html = htmlElemGen(
+        'rect', x=0, y=0, width=cbox_w, height=cbox_h,
+        stroke='black', stroke_width=0.5,
+        fill=f"url(#{color_tag})",
+    )
+    defs = htmlElemGen('defs', gradient_html)
+    return htmlElemGen('g', defs + "\n" + box_html)
 
 
 main()
