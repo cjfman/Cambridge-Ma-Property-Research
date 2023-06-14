@@ -1,10 +1,14 @@
 class ColorGradient:
-    def __init__(self, colors, max_val, min_val=0):
-        self.colors = colors
-        self.max    = max_val
-        self.min    = min_val
-        self.range  = self.max - self.min
-        self.size   = len(self.colors)
+    def __init__(self, colors, max_val, min_val=0, *, scale_fn=None):
+        self.colors   = colors
+        self.max      = max_val
+        self.min      = min_val
+        self.range    = self.max - self.min
+        self.size     = len(self.colors)
+        self.scale_fn = scale_fn or lambda x: x
+
+    def scale(self, val):
+        return self.scale_fn(val-self.min)
 
     def percent(self, val):
         if val is None or val < self.min:
@@ -12,8 +16,7 @@ class ColorGradient:
         elif val > self.max:
             return 100
 
-        val -= self.min
-        return val*100/self.range
+        return self.scale(val)*100/self.range
 
     def pick(self, val):
         if val is None:
@@ -23,8 +26,7 @@ class ColorGradient:
         elif val > self.max:
             return self.colors[-1]
 
-        val -= self.min
-        index = int(min(val*self.size//self.range, self.size - 1))
+        index = int(min(self.scale(val)*self.size//self.range, self.size - 1))
         return self.colors[index]
 
 
