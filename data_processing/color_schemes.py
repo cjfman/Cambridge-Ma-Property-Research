@@ -6,6 +6,15 @@ class ColorGradient:
         self.range  = self.max - self.min
         self.size   = len(self.colors)
 
+    def percent(self, val):
+        if val is None or val < self.min:
+            return 0
+        elif val > self.max:
+            return 100
+
+        val -= self.min
+        return val*100/self.range
+
     def pick(self, val):
         if val is None:
             return '#000000'

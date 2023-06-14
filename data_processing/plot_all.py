@@ -5,13 +5,14 @@
 import os
 
 import folium
+import numpy as np
 import pandas as pd
 
 from branca.element import Template, MacroElement
 
 import color_schemes as cs
 import gis
-from simplehtml import Element, LinearGradient
+from simplehtml import Element, LinearGradient, Text, TickMark
 
 ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
@@ -236,7 +237,8 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kw
 
     ## Load template
     if template is not None:
-        color_key = makeColorKey(gradient)
+        key_values = [float(x) for x in np.arange(gradient.min, gradient.max, 0.5)] + [gradient.max]
+        color_key = makeColorKey(name, gradient, values=key_values)
         template = template.replace("{{SVG}}", color_key)
         macro = MacroElement()
         macro._template = Template(template) ## pylint: disable=protected-access
@@ -258,16 +260,49 @@ def htmlElemGen(tag, data='', **kwargs):
     return f'<{tag} {attrs}>{data}</{tag}>'
 
 
-def makeColorKey(colors, cbox_h=10, cbox_w=80, tick_h=2):
+def makeColorKey(title, gradient, cbox_h=20, cbox_w=400, tick_h=10, values=None):
+    values = values or []
+    ## Add data
     color_tag = "color-scheme-red"
-    gradient_el = LinearGradient(colors, color_tag)
-    box_el = Element(
-        'rect', x=0, y=0, width=cbox_w, height=cbox_h,
-        stroke='black', stroke_width=0.5,
+    gradient_el = LinearGradient(gradient, color_tag)
+
+    ## Add elements
+    y_off = 20
+    x_off = 10
+    text_h = 15
+    els = []
+
+    ## Title
+    els.append(Text(title, x=x_off, y=y_off))
+    y_off += text_h
+
+    els.append(Text('FAR', x=x_off, y=y_off))
+    y_off += text_h/2
+
+    ## Create Color box
+    els.append(Element('defs', gradient_el))
+    els.append(Element(
+        'rect', x=x_off, y=y_off, width=cbox_w, height=cbox_h,
+        stroke='black', stroke_width=2,
         fill=f"url(#{color_tag})",
-    )
-    defs_el = Element('defs', gradient_el)
-    return Element('g', [defs_el, box_el]).to_html()
+    ))
+    y_off += cbox_h
+
+    ## Create Ticks
+    ticks = []
+    for value in values:
+        x = x_off + int(cbox_w*gradient.percent(value)/100)
+        text_y = y_off + int(tick_h*1.1) + text_h
+        ticks.append(TickMark(x=x, y=y_off, height=tick_h, width=2))
+        ticks.append(Text(value, x=x, y=text_y))
+
+    y_off += int(tick_h*1.1) + text_h
+    els.append(Element('g', ticks))
+
+    ## Create SVG
+    width = cbox_w + 20
+    height = y_off
+    return Element('svg', els, width=width, height=height).to_html()
 
 
 main()
