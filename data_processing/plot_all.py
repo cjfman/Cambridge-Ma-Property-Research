@@ -19,7 +19,7 @@ ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
 MAPS        = os.path.join(ROOT, "maps")
 STATS       = os.path.join(ROOT, "stats")
-OVERWRITE   = True
+OVERWRITE   = False
 
 color_bin_3_5 = [round(i*3/9, 1) for i in range(8)] + [3.5]
 color_bin_5 = [round(i*3/9, 1) for i in range(8)] + [5]
@@ -30,7 +30,7 @@ default = {
     'color': 'RdYlBu',
     #'bins': color_bin_5,
     'geo_path': os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson"),
-    'overwrite': False,
+    'overwrite': True,
 }
 
 data_sets = [
@@ -42,6 +42,7 @@ data_sets = [
         'out_path': os.path.join(MAPS, "lots_residential.html"),
         'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
         'bins': color_bin_5,
+        'overwrite': False,
     },
     {
         'name': "Residential and BA Lots",
@@ -50,6 +51,7 @@ data_sets = [
         'out_path': os.path.join(MAPS, "lots_low.html"),
         'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
         'bins': color_bin_5,
+        'overwrite': False,
     },
 
     ## Residential
@@ -162,6 +164,14 @@ data_sets = [
         'out_path': os.path.join(MAPS, "all_90.html"),
         'bins': color_bin_5_5,
     },
+    {
+        'name': "All Max FAR",
+        'column': 'far_max',
+        'legend': 'FAR Max FAR',
+        'data_path': os.path.join(STATS, "all_percentile.csv"),
+        'out_path': os.path.join(MAPS, "all_max.html"),
+        'bins': color_bin_5_5,
+    },
 ]
 
 def main():
@@ -213,7 +223,8 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kw
 
     print(f"Reading {geo_path}")
     geojson = gis.GisGeoJson(geo_path)
-    gradient = cs.ColorGradient(cs.BlueRedYellow, int(values.max()), scale_fn=lambda x: math.log(1 + x))
+    gradient = cs.ColorGradient(cs.BlueRedYellow, 7, scale_fn=lambda x: math.log(1 + x))
+    #gradient = cs.ColorGradient(cs.BlueRedYellow, int(values.max()), scale_fn=lambda x: math.log(1 + x))
 
     geojson.setProperty(column, "N/A")
     for i, row in data.iterrows():
@@ -296,7 +307,11 @@ def makeColorKey(title, gradient, cbox_h=20, cbox_w=400, tick_h=10, values=None)
         x = x_off + int(cbox_w*gradient.percent(value)/100)
         text_y = y_off + int(tick_h*1.1) + text_h
         ticks.append(TickMark(x=x, y=y_off, height=tick_h, width=2))
-        ticks.append(Text(value, x=x, y=text_y))
+        if value < gradient.max:
+            ticks.append(Text("%0.2g" % value, x=x, y=text_y))
+        else:
+            ticks.append(Text("%0.2g+" % value, x=x-10, y=text_y))
+            break
 
     y_off += int(tick_h*1.1) + text_h
     els.append(Element('g', ticks))

@@ -17,7 +17,6 @@ data_path       = os.path.join(ROOT, "all_data.json")
 blocks_path     = os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson")
 blocks_out_path = os.path.join(STATS, "all_percentile.csv")
 
-Stats = namedtuple('Stats', ['mean', 'median', 'stddev', 'quantiles'])
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
 ZONES_BIZ_LOW = ("BA", "BA-1", "BA-2", "BA-3", "BA-4", "BC", "O-1")
@@ -32,7 +31,9 @@ MID_MASS  = (524, 539, 493, 490, 501, 506)
 ZONES     = []
 NO_BLOCK  = [] #COURT
 YES_BLOCK = []
-MAX_FAR = 5.5
+MAX_FAR = None
+
+Stats = namedtuple('Stats', ['mean', 'median', 'max', 'stddev', 'quantiles'])
 
 
 def main():
@@ -46,9 +47,8 @@ def main():
 
 
 def getStats(data, res=2):
-    stats = [round(x, res) for x in (mean(data), median(data), pstdev(data))]
+    stats = [round(x, res) for x in (mean(data), median(data), max(data), pstdev(data))]
     stats.append([round(x, res) for x in np.quantile(data, q=np.arange(.01, 1.00, .01))])
-    #stats.append([round(x, res) for x in np.quantile(data, q=np.arange(.25, 1.00, .25))])
     return Stats(*stats)
 
 
@@ -76,7 +76,7 @@ def calcBlockStats(data, path):
         exclude = not block \
             or 'dimensions' not in b \
             or (ZONES and b['zone'] not in ZONES) \
-            or dim['FAR'] > MAX_FAR
+            or (MAX_FAR and dim['FAR'] > MAX_FAR)
 
         if exclude and block not in YES_BLOCK:
             continue
@@ -105,6 +105,7 @@ def calcBlockStats(data, path):
             block,
             far_stats.mean,
             far_stats.median,
+            far_stats.max,
             far_stats.stddev,
             ladu_stats.mean,
             ladu_stats.median,
@@ -118,7 +119,7 @@ def calcBlockStats(data, path):
 
     rows.sort()
     columns = ['id', 'block',
-        'far_mean',  'far_median',  'far_stddev',
+        'far_mean',  'far_median',  'far_max', 'far_stddev',
         'ladu_mean', 'ladu_median', 'ladu_stddev',
         'os_mean',   'os_median',   'os_stddev',
     ]
