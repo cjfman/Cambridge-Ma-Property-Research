@@ -33,7 +33,7 @@ default = {
     'overwrite': True,
 }
 
-data_sets = [
+all_data_sets = [
     ## Lots
     {
         'name': "Residential Lots",
@@ -174,12 +174,17 @@ data_sets = [
     },
 ]
 
+for data_set in all_data_sets:
+    for k, v in default.items():
+        if k not in data_set:
+            data_set[k] = v
+
 def main():
     template = None
     with open(os.path.join(ROOT, "templates/map.html")) as f:
         template = f.read()
 
-    for data_set in data_sets:
+    for data_set in all_data_sets:
         override = dict(default)
         override.update(data_set)
         overwrite = (OVERWRITE or override['overwrite'])
@@ -188,6 +193,13 @@ def main():
 
         #plotChoropleth(**override)
         plotGeoJson(template=template, **override)
+
+
+def main2():
+    template = None
+    with open(os.path.join(ROOT, "templates/map.html")) as f:
+        template = f.read()
+        plotLayers("Cambridge FAR Map", all_data_sets[-5:], os.path.join(MAPS, 'everything.html'), template)
 
 
 def plotChoropleth(name, geo, out_path, data_path, column, color, legend=None, bins=None):
@@ -322,4 +334,67 @@ def makeColorKey(title, gradient, cbox_h=20, cbox_w=400, tick_h=10, values=None)
     return Element('svg', els, width=width, height=height).to_html()
 
 
-main()
+
+def plotLayers(name, data_sets, out_path, template=None):
+    ## Make map
+    m = folium.Map(location=[42.378, -71.11], zoom_start=14)
+    gradient = cs.ColorGradient(cs.BlueRedYellow, 7, scale_fn=lambda x: math.log(1 + x))
+
+    ## Generate layers
+    print("Generating layers")
+    geo_files = {}
+    data_files = {}
+    layers = []
+    for ds in data_sets:
+        ## Get files
+        data_path = ds['data_path']
+        geo_path = ds['geo_path']
+        if data_path not in data_files:
+            print(f"Reading {data_path}")
+            data_files[data_path] = pd.read_csv(data_path, index_col='id')
+        if geo_path not in geo_files:
+            print(f"Reading {geo_path}")
+            geo_files[geo_path] = gis.GisGeoJson(geo_path)
+
+        layer = makeLayer(
+            ds['name'], geo_files[geo_path], data_files[data_path], gradient, ds['column'],
+            show=(not(layers)),
+        )
+        layer.add_to(m)
+        layers.append(layer)
+
+    folium.LayerControl(position='topleft', collapsed=False).add_to(m)
+    ## Load template
+    if template is not None:
+        key_values = list(np.arange(gradient.min, 3, 0.5))
+        key_values += list(np.arange(3, gradient.max, 1))
+        key_values = [float(x) for x in key_values] + [gradient.max]
+        color_key = makeColorKey(name, gradient, values=key_values)
+        template = template.replace("{{SVG}}", color_key)
+        macro = MacroElement()
+        macro._template = Template(template) ## pylint: disable=protected-access
+        m.get_root().add_child(macro)
+
+    m.save(out_path)
+    print(f"Wrote to {out_path}")
+
+
+def makeLayer(name, geojson, data, gradient, column, *, show=True):
+    values = data[column]
+    geojson.setProperty(column, "N/A")
+    for i, row in data.iterrows():
+        geojson.setProperty(column, row[column], i)
+
+    ## Make style function
+    style_function = lambda x: {
+        'fillColor': gradient.pick(float(noThrow(values, x['id']) or 0) or None),
+        'fillOpacity': 0.7,
+        'weight': 2,
+        'color': '#000000',
+        'opacity': 0.2,
+    }
+    geo = folium.GeoJson(geojson.geojson, name=name, style_function=style_function, show=show)
+    folium.GeoJsonTooltip(fields=[column], aliases=['FAR'], sticky=False).add_to(geo)
+    return geo
+
+main2()
