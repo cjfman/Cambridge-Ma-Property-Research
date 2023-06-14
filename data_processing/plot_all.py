@@ -11,6 +11,7 @@ from branca.element import Template, MacroElement
 
 import color_schemes as cs
 import gis
+from simplehtml import Element, LinearGradient
 
 ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
@@ -259,14 +260,14 @@ def htmlElemGen(tag, data='', **kwargs):
 
 def makeColorKey(colors, cbox_h=10, cbox_w=80, tick_h=2):
     color_tag = "color-scheme-red"
-    gradient_html = colors.toHtmlLinearGradient(color_tag)
-    box_html = htmlElemGen(
+    gradient_el = LinearGradient(colors, color_tag)
+    box_el = Element(
         'rect', x=0, y=0, width=cbox_w, height=cbox_h,
         stroke='black', stroke_width=0.5,
         fill=f"url(#{color_tag})",
     )
-    defs = htmlElemGen('defs', gradient_html)
-    return htmlElemGen('g', defs + "\n" + box_html)
+    defs_el = Element('defs', gradient_el)
+    return Element('g', [defs_el, box_el]).to_html()
 
 
 main()

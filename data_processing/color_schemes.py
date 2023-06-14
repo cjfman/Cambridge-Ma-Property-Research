@@ -18,18 +18,6 @@ class ColorGradient:
         index = int(min(val*self.size//self.range, self.size - 1))
         return self.colors[index]
 
-    def toHtmlLinearGradient(self, name=None):
-        stops = []
-        for i, color in enumerate(self.colors):
-            offset = round((i + 1)/self.size*100, 5)
-            stops.append(f'<stop offset="{offset}%" stop-color="{color}"></stop>')
-
-        if name is not None:
-            name = f'id="{name}"'
-
-        return f'<lineargradient {name}>' + "\n".join(stops) + '</lineargradient>'
-
-
 
 ## https://gka.github.io/palettes/#/256|d|648fff,785ef0,dc267f|dc267f,fe6100,ffb000|0|1
 ## #648fff, #785ef0, #dc267f -- #dc267f, #fe6100, #ffb000
