@@ -10,7 +10,7 @@ GEOJSON   = os.path.join(ROOT, "geojson")
 STATS     = os.path.join(ROOT, "stats")
 lots_path = os.path.join(GEOJSON,"ASSESSING_ParcelsFY2023.geojson")
 data_path = os.path.join(ROOT, "all_data.json")
-out_path  = os.path.join(STATS, "lots_low.csv")
+out_path  = os.path.join(STATS, "lots_all.csv")
 lot_gis   = gis.Lots(lots_path)
 
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
@@ -24,7 +24,7 @@ COURT     = (502, 479)
 KENDAL    = (680,)
 MID_MASS  = (524, 539, 493, 490, 501, 506)
 
-ZONES = ZONES_RES + ZONES_BIZ_LOW
+ZONES = None #ZONES_RES + ZONES_BIZ_LOW
 NO_BLOCKS = FIRST_ST
 
 js = None

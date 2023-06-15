@@ -16,6 +16,7 @@ STATS           = os.path.join(ROOT, "stats")
 data_path       = os.path.join(ROOT, "all_data.json")
 blocks_path     = os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson")
 blocks_out_path = os.path.join(STATS, "all_percentile.csv")
+zones_out_path  = os.path.join(STATS, "zones_all_percentile.csv")
 
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
@@ -41,9 +42,10 @@ def main():
     with open(data_path) as f:
         raw_data = json.load(f)
 
-
-    block_stats = calcBlockStats(raw_data, blocks_path)
-    writeCsv(block_stats, blocks_out_path)
+    #block_stats = calcBlockStats(raw_data, blocks_path)
+    #writeCsv(block_stats, blocks_out_path)
+    zone_stats = calcZoneStats(raw_data)
+    writeCsv(zone_stats, zones_out_path)
 
 
 def getStats(data, res=2):
@@ -129,7 +131,8 @@ def calcBlockStats(data, path):
     return rows
 
 
-def basicStats(data):
+def calcZoneStats(data):
+    ## pylint: disable=too-many-locals
     zone_far  = defaultdict(list)
     zone_ladu = defaultdict(list)
     zone_os   = defaultdict(list)
@@ -147,14 +150,45 @@ def basicStats(data):
         zone_ladu[zone].append(dim['LADU'])
         zone_os[zone].append(dim['OPEN'])
 
-    for zone in ('A-1', 'A-2', 'B', 'C', 'C-1', 'BA', 'BB', 'BC'):
-        far        = round(mean(zone_far[zone]), 2)
-        ladu       = round(mean(zone_ladu[zone]), 2)
-        open_space = round(mean(zone_os[zone]), 2)
-        far_stddev        = round(pstdev(zone_far[zone]), 2)
-        ladu_stddev       = round(pstdev(zone_ladu[zone]), 2)
-        open_space_stddev = round(pstdev(zone_os[zone]), 2)
-        print(f"Mean Zone {zone} FAR:{far} LA/DU:{ladu} Open Space:{open_space}%")
-        print(f"StdDev Zone {zone} FAR:{far_stddev} LA/DU:{ladu_stddev} Open Space:{open_space_stddev}%")
+    ## Get the stats
+    zone_far_stats  = { key: getStats(val) for key, val in zone_far.items() }
+    zone_ladu_stats = { key: getStats(val) for key, val in zone_ladu.items() }
+    zone_os_stats   = { key: getStats(val) for key, val in zone_os.items() }
+
+    ## Produce the rows
+    rows = []
+    for zone in zone_far_stats.keys():
+        far_stats  = zone_far_stats[zone]
+        ladu_stats = zone_ladu_stats[zone]
+        os_stats   = zone_os_stats[zone]
+        row = [
+            zone,
+            far_stats.mean,
+            far_stats.median,
+            far_stats.max,
+            far_stats.stddev,
+            ladu_stats.mean,
+            ladu_stats.median,
+            ladu_stats.stddev,
+            os_stats.mean,
+            os_stats.median,
+            os_stats.stddev,
+        ]
+        row += list(far_stats.quantiles)
+        rows.append(row)
+        if 'SD-' not in zone:
+            print(f"Mean Zone {zone} FAR:{far_stats.mean} LA/DU:{ladu_stats.mean} Open Space:{os_stats.mean}%")
+            print(f"StdDev Zone {zone} FAR:{far_stats.stddev} LA/DU:{ladu_stats.stddev} Open Space:{os_stats.stddev}%")
+
+    rows.sort()
+    columns = [
+        'zone', 'far_mean',  'far_median',  'far_max', 'far_stddev',
+        'ladu_mean', 'ladu_median', 'ladu_stddev', 'os_mean', 'os_median','os_stddev',
+    ]
+    columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
+    rows = [columns] + rows
+
+    return rows
+
 
 main()
