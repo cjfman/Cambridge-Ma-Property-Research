@@ -42,10 +42,8 @@ def main():
     with open(data_path) as f:
         raw_data = json.load(f)
 
-    #block_stats = calcBlockStats(raw_data, blocks_path)
-    #writeCsv(block_stats, blocks_out_path)
-    zone_stats = calcZoneStats(raw_data)
-    writeCsv(zone_stats, zones_out_path)
+    #block_stats = writeBlockStats(raw_data, blocks_path, blocks_out_path)
+    zone_stats = writeZoneStats(raw_data, zones_out_path)
 
 
 def getStats(data, res=2):
@@ -61,9 +59,8 @@ def writeCsv(rows, path):
             f.write("\n")
 
 
-def calcBlockStats(data, path):
+def calcBlockStats(data):
     ## pylint: disable=too-many-locals
-    block_gis = gis.CityBlocks(path)
     block_far  = defaultdict(list)
     block_ladu = defaultdict(list)
     block_os   = defaultdict(list)
@@ -94,6 +91,12 @@ def calcBlockStats(data, path):
     block_far_stats  = { key: getStats(val) for key, val in block_far.items() }
     block_ladu_stats = { key: getStats(val) for key, val in block_ladu.items() }
     block_os_stats   = { key: getStats(val) for key, val in block_os.items() }
+    return (block_far_stats, block_ladu_stats, block_os_stats)
+
+
+def writeBlockStats(data, gis_path, out_path):
+    block_gis = gis.CityBlocks(gis_path)
+    block_far_stats, block_ladu_stats, block_os_stats = calcBlockStats(data)
 
     ## Produce the rows
     rows = []
@@ -127,12 +130,10 @@ def calcBlockStats(data, path):
     ]
     columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
     rows = [columns] + rows
-
-    return rows
+    writeCsv(rows, out_path)
 
 
 def calcZoneStats(data):
-    ## pylint: disable=too-many-locals
     zone_far  = defaultdict(list)
     zone_ladu = defaultdict(list)
     zone_os   = defaultdict(list)
@@ -151,10 +152,14 @@ def calcZoneStats(data):
         zone_os[zone].append(dim['OPEN'])
 
     ## Get the stats
-    zone_far_stats  = { key: getStats(val) for key, val in zone_far.items() }
-    zone_ladu_stats = { key: getStats(val) for key, val in zone_ladu.items() }
-    zone_os_stats   = { key: getStats(val) for key, val in zone_os.items() }
+    far_stats  = { key: getStats(val) for key, val in zone_far.items() }
+    ladu_stats = { key: getStats(val) for key, val in zone_ladu.items() }
+    os_stats   = { key: getStats(val) for key, val in zone_os.items() }
+    return (far_stats, ladu_stats, os_stats)
 
+
+def writeZoneStats(data, out_path):
+    zone_far_stats, zone_ladu_stats, zone_os_stats = calcZoneStats(data)
     ## Produce the rows
     rows = []
     for zone in zone_far_stats.keys():
@@ -176,9 +181,9 @@ def calcZoneStats(data):
         ]
         row += list(far_stats.quantiles)
         rows.append(row)
-        if 'SD-' not in zone:
-            print(f"Mean Zone {zone} FAR:{far_stats.mean} LA/DU:{ladu_stats.mean} Open Space:{os_stats.mean}%")
-            print(f"StdDev Zone {zone} FAR:{far_stats.stddev} LA/DU:{ladu_stats.stddev} Open Space:{os_stats.stddev}%")
+#        if 'SD-' not in zone:
+#            print(f"Mean Zone {zone} FAR:{far_stats.mean} LA/DU:{ladu_stats.mean} Open Space:{os_stats.mean}%")
+#            print(f"StdDev Zone {zone} FAR:{far_stats.stddev} LA/DU:{ladu_stats.stddev} Open Space:{os_stats.stddev}%")
 
     rows.sort()
     columns = [
@@ -187,8 +192,6 @@ def calcZoneStats(data):
     ]
     columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
     rows = [columns] + rows
-
-    return rows
-
+    writeCsv(rows, out_path)
 
 main()
