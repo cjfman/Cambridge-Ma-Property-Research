@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+## pylint: disable=too-many-locals
+
 import json
 import os
 
@@ -17,12 +19,16 @@ data_path       = os.path.join(ROOT, "all_data.json")
 blocks_path     = os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson")
 blocks_out_path = os.path.join(STATS, "all_percentile.csv")
 zones_out_path  = os.path.join(STATS, "zones_all_percentile.csv")
+zones_summary   = os.path.join(STATS, "zones_summary.csv")
+zones_all_path  = os.path.join(STATS, "zones")
 
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
 ZONES_BIZ_LOW = ("BA", "BA-1", "BA-2", "BA-3", "BA-4", "BC", "O-1")
-ZONES_BIZ_HIGH = ("BB", "BB-1", "BB-2", "O-2", "O-3", "C-2B") #, "O-2A", "O-3A", "MXD", "ASD")
+ZONES_BIZ_HIGH = ("BB", "BB-1", "BB-2", "O-2", "O-3", "C-2B")
 ZONES_IND = ("IA", "IA-1" "IA-2", "IB", "IB-1", "IB-2", "IC")
+ZONES_OTHER =  ("O-2A", "O-3A", "MXD", "ASD")
+ALL_ZONES = ZONES_RES + ZONES_INTS + ZONES_BIZ_LOW + ZONES_BIZ_HIGH + ZONES_IND + ZONES_OTHER
 
 FIRST_ST  = (483, 526, 547, 566, 571, 505, 468)
 COURT     = (502, 479)
@@ -30,7 +36,7 @@ KENDAL    = (680,)
 MID_MASS  = (524, 539, 493, 490, 501, 506)
 
 ZONES     = []
-NO_BLOCK  = [] #COURT
+NO_BLOCK  = COURT + FIRST_ST
 YES_BLOCK = []
 MAX_FAR = None
 
@@ -43,7 +49,9 @@ def main():
         raw_data = json.load(f)
 
     #block_stats = writeBlockStats(raw_data, blocks_path, blocks_out_path)
-    zone_stats = writeZoneStats(raw_data, zones_out_path)
+    #writeZoneStats(raw_data, zones_out_path)
+    #writeZonesSummary(raw_data, zones_summary)
+    writeZoneBlocksStats(raw_data, blocks_path, zones_all_path)
 
 
 def getStats(data, res=2):
@@ -59,11 +67,21 @@ def writeCsv(rows, path):
             f.write("\n")
 
 
-def calcBlockStats(data):
+def makeBlockGisIdMap(data, block_gis):
+    geo_id_map = {}
+    for b in data['buildings']:
+        block = b['block']
+        geo_id_map[block] = block_gis.getGeoId(block)
+
+    return geo_id_map
+
+
+def calcBlockStats(data, zones=None):
     ## pylint: disable=too-many-locals
     block_far  = defaultdict(list)
     block_ladu = defaultdict(list)
     block_os   = defaultdict(list)
+    zones      = zones or ZONES
 
     ## Go through each building and get the dimensions
     for b in data['buildings']:
@@ -74,7 +92,7 @@ def calcBlockStats(data):
 
         exclude = not block \
             or 'dimensions' not in b \
-            or (ZONES and b['zone'] not in ZONES) \
+            or (zones and b['zone'] not in zones) \
             or (MAX_FAR and dim['FAR'] > MAX_FAR)
 
         if exclude and block not in YES_BLOCK:
@@ -94,14 +112,22 @@ def calcBlockStats(data):
     return (block_far_stats, block_ladu_stats, block_os_stats)
 
 
-def writeBlockStats(data, gis_path, out_path):
-    block_gis = gis.CityBlocks(gis_path)
-    block_far_stats, block_ladu_stats, block_os_stats = calcBlockStats(data)
+def writeBlockStats(data, block_gis, out_path, *, zones=None, geo_id_map=None):
+    geo_id_map = geo_id_map or {}
+    if isinstance(block_gis, str):
+        block_gis = gis.CityBlocks(block_gis)
+    elif not isinstance(block_gis, gis.CityBlocks):
+        raise ValueError("Argument 'block_gis' must be either of type 'str' or 'gis.CityBlocks'. Found:" + type(block_gis))
 
+    block_far_stats, block_ladu_stats, block_os_stats = calcBlockStats(data, zones=zones)
     ## Produce the rows
     rows = []
     for block in block_far_stats.keys():
-        geo_id     = block_gis.getGeoId(block)
+        geo_id = None
+        if block not in geo_id_map:
+            geo_id_map[block] = block_gis.getGeoId(block)
+
+        geo_id     = geo_id_map[block]
         far_stats  = block_far_stats[block]
         ladu_stats = block_ladu_stats[block]
         os_stats   = block_os_stats[block]
@@ -128,7 +154,9 @@ def writeBlockStats(data, gis_path, out_path):
         'ladu_mean', 'ladu_median', 'ladu_stddev',
         'os_mean',   'os_median',   'os_stddev',
     ]
-    columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
+    if rows:
+        columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
+
     rows = [columns] + rows
     writeCsv(rows, out_path)
 
@@ -193,5 +221,47 @@ def writeZoneStats(data, out_path):
     columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
     rows = [columns] + rows
     writeCsv(rows, out_path)
+
+
+def writeZonesSummary(data, out_path):
+    zone_far_stats, zone_ladu_stats, zone_os_stats = calcZoneStats(data)
+    quantile_indices = [74, 79, 89]
+    rows = []
+    for zone in zone_far_stats.keys():
+        far_stats  = zone_far_stats[zone]
+        ladu_stats = zone_ladu_stats[zone]
+        os_stats   = zone_os_stats[zone]
+        row = [
+            zone,
+            far_stats.mean,
+            far_stats.median,
+            far_stats.max,
+            far_stats.stddev,
+            ladu_stats.mean,
+            ladu_stats.median,
+            ladu_stats.stddev,
+            os_stats.mean,
+            os_stats.median,
+            os_stats.stddev,
+        ]
+        row += [far_stats.quantiles[x] for x in quantile_indices]
+        rows.append(row)
+
+    rows.sort()
+    columns = [
+        'zone', 'far_mean',  'far_median',  'far_max', 'far_stddev',
+        'ladu_mean', 'ladu_median', 'ladu_stddev', 'os_mean', 'os_median','os_stddev',
+    ]
+    columns += [f"far_{x + 1}" for x in quantile_indices]
+    rows = [columns] + rows
+    writeCsv(rows, out_path)
+
+
+def writeZoneBlocksStats(data, gis_path, out_path):
+    block_gis = gis.CityBlocks(gis_path)
+    geo_id_map = makeBlockGisIdMap(data, block_gis)
+    for zone in ALL_ZONES:
+        writeBlockStats(data, block_gis, os.path.join(out_path, f"zone_{zone}_blocks.csv"), zones=[zone], geo_id_map=geo_id_map)
+
 
 main()
