@@ -4,7 +4,7 @@
 
 import os
 
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from statistics import mean, median, pstdev
 
 import matplotlib.pyplot as plt
@@ -58,41 +58,30 @@ def main():
         min_xlim, max_xlim = plt.xlim()
         txt_offset = max_xlim * 0.01
         far_limit = ZONES[zone]
-        plt.axvline(far_limit, color='red', linestyle='dashed', linewidth=2, zorder=99)
-        plt.text(
-            far_limit+txt_offset,
-            max_ylim*0.9,
-            '{:.2f}'.format(far_limit),
-            fontweight='bold',
-            horizontalalignment='left',
-            backgroundcolor='white',
-            zorder=98,
-        )
-
-        plt.axvline(stats.median, color='orange', linestyle='dashed', linewidth=2, zorder=97)
-        plt.text(
-            stats.median+txt_offset,
-            max_ylim*0.8,
-            '{:.2f}'.format(stats.median),
-            fontweight='bold',
-            horizontalalignment='left',
-            backgroundcolor='white',
-            zorder=96
-        )
-
-        per_75 = stats.quantiles[74]
-        plt.axvline(per_75, color='darkblue', linestyle='dashed', linewidth=2, zorder=95)
-        plt.text(
-            per_75+txt_offset,
-            max_ylim*0.7,
-            '{:.2f}'.format(per_75),
-            fontweight='bold',
-            backgroundcolor='white',
-            zorder=94,
-        )
+        line_data_sets = [
+            (far_limit,           txt_offset, max_ylim*0.9, 'red'),
+            (stats.median,        txt_offset, max_ylim*0.8, 'orange'),
+            (stats.quantiles[74], txt_offset, max_ylim*0.7, 'darkblue'),
+        ]
+        line_data_sets.sort()
+        zorder = 100
+        for line_data in line_data_sets:
+            plotLine(*line_data, zorder=zorder)
+            zorder -= 2
 
         ## Show
-        plt.savefig(os.path.join(GRAPHS, f"zone_{zone}.png"))
-        plt.clf()
+        #plt.savefig(os.path.join(GRAPHS, f"zone_{zone}.png"))
+        #plt.clf()
+        plt.show()
+
+
+def plotLine(value, x_offset, y, color, *, zorder=2):
+    plt.axvline(value, color=color, linestyle='dashed', linewidth=2, zorder=zorder)
+    plt.text(value + x_offset, y, '{:.2f}'.format(value),
+        fontweight='bold',
+        horizontalalignment='left',
+        backgroundcolor='white',
+        zorder=zorder-1,
+    )
 
 main()
