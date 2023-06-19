@@ -19,9 +19,11 @@ ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
 MAPS        = os.path.join(ROOT, "maps")
 STATS       = os.path.join(ROOT, "stats")
-OVERWRITE   = True
+OVERWRITE   = False
 
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
+ZONES_BIZ = ("BA", "BA-1", "BA-2", "BB", "BC")
+ZONES = ZONES_RES + ZONES_BIZ
 
 DEFAULT = {
     'geo_path': os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson"),
@@ -106,20 +108,30 @@ def plotZones():
     with open(os.path.join(ROOT, "templates/map.html")) as f:
         template = f.read()
 
-    for zone in ZONES_RES:
+    columns = {
+        'far_mean':   "Mean",
+        'far_median': "Median",
+        'far_75':     "75th Percentile",
+        'far_80':     "80th Percentile",
+        'far_90':     "90th Percentile",
+        'far_max':    "Max",
+    }
+
+    for zone in ZONES:
         data_set = dict(DEFAULT)
-        data_set.update({
-            'name': f"Zone {zone}",
-            'column': 'far_mean',
-            'data_path': os.path.join(STATS, f"zones/zone_{zone}_blocks.csv"),
-            'out_path': os.path.join(MAPS, f"zones/zone_{zone}_mean.html"),
-        })
+        for column, name in columns.items():
+            data_set.update({
+                'name': f"Zone {zone} {name}",
+                'column': column,
+                'data_path': os.path.join(STATS, f"zones/zone_{zone}_blocks.csv"),
+                'out_path': os.path.join(MAPS, f"zones/zone_{zone}_{column}.html"),
+            })
 
-        overwrite = (OVERWRITE or data_set['overwrite'])
-        if not overwrite and os.path.isfile(data_set['out_path']):
-            continue
+            overwrite = (OVERWRITE or data_set['overwrite'])
+            if not overwrite and os.path.isfile(data_set['out_path']):
+                continue
 
-        plotGeoJson(template=template, **data_set)
+            plotGeoJson(template=template, **data_set)
 
 
 

@@ -40,7 +40,7 @@ NO_BLOCK  = COURT + FIRST_ST
 YES_BLOCK = []
 MAX_FAR = None
 
-Stats = namedtuple('Stats', ['mean', 'median', 'max', 'stddev', 'quantiles'])
+Stats = namedtuple('Stats', ['mean', 'median', 'max', 'min', 'stddev', 'quantiles'])
 
 
 def main():
@@ -50,14 +50,19 @@ def main():
 
     #block_stats = writeBlockStats(raw_data, blocks_path, blocks_out_path)
     #writeZoneStats(raw_data, zones_out_path)
-    #writeZonesSummary(raw_data, zones_summary)
-    writeZoneBlocksStats(raw_data, blocks_path, zones_all_path)
+    writeZonesSummary(raw_data, zones_summary)
+    #writeZoneBlocksStats(raw_data, blocks_path, zones_all_path)
 
 
-def getStats(data, res=2):
-    stats = [round(x, res) for x in (mean(data), median(data), max(data), pstdev(data))]
+def getStats(data, res=2, reverse=False):
+    stats = [round(x, res) for x in (mean(data), median(data), max(data), min([x for x in data if x >= 0]), pstdev(data))]
     stats.append([round(x, res) for x in np.quantile(data, q=np.arange(.01, 1.00, .01))])
-    return Stats(*stats)
+
+    stats = Stats(*stats)
+    if reverse:
+        stats.quantiles.sort(reverse=True)
+
+    return stats
 
 
 def writeCsv(rows, path):
@@ -155,7 +160,7 @@ def writeBlockStats(data, block_gis, out_path, *, zones=None, geo_id_map=None):
         'os_mean',   'os_median',   'os_stddev',
     ]
     if rows:
-        columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
+        columns += [f"far_{x + 1}"  for x in range(len(far_stats.quantiles))]
 
     rows = [columns] + rows
     writeCsv(rows, out_path)
@@ -181,8 +186,8 @@ def calcZoneStats(data):
 
     ## Get the stats
     far_stats  = { key: getStats(val) for key, val in zone_far.items() }
-    ladu_stats = { key: getStats(val) for key, val in zone_ladu.items() }
-    os_stats   = { key: getStats(val) for key, val in zone_os.items() }
+    ladu_stats = { key: getStats(val, reverse=True) for key, val in zone_ladu.items() }
+    os_stats   = { key: getStats(val, reverse=True) for key, val in zone_os.items() }
     return (far_stats, ladu_stats, os_stats)
 
 
@@ -196,13 +201,18 @@ def writeZoneStats(data, out_path):
         os_stats   = zone_os_stats[zone]
         row = [
             zone,
+            far_stats.min,
+            far_stats.max,
             far_stats.mean,
             far_stats.median,
-            far_stats.max,
             far_stats.stddev,
+            ladu_stats.min,
+            ladu_stats.max,
             ladu_stats.mean,
             ladu_stats.median,
             ladu_stats.stddev,
+            os_stats.min,
+            os_stats.max,
             os_stats.mean,
             os_stats.median,
             os_stats.stddev,
@@ -215,8 +225,10 @@ def writeZoneStats(data, out_path):
 
     rows.sort()
     columns = [
-        'zone', 'far_mean',  'far_median',  'far_max', 'far_stddev',
-        'ladu_mean', 'ladu_median', 'ladu_stddev', 'os_mean', 'os_median','os_stddev',
+        'zone',
+        'far_min', 'far_max', 'far_mean','far_median', 'far_stddev',
+        'ladu_min', 'ladu_max', 'ladu_mean','ladu_median', 'ladu_stddev',
+        'os_min', 'os_max', 'os_mean','os_median', 'os_stddev',
     ]
     columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
     rows = [columns] + rows
@@ -233,26 +245,37 @@ def writeZonesSummary(data, out_path):
         os_stats   = zone_os_stats[zone]
         row = [
             zone,
+            far_stats.min,
+            far_stats.max,
             far_stats.mean,
             far_stats.median,
-            far_stats.max,
             far_stats.stddev,
+            ladu_stats.min,
+            ladu_stats.max,
             ladu_stats.mean,
             ladu_stats.median,
             ladu_stats.stddev,
+            os_stats.min,
+            os_stats.max,
             os_stats.mean,
             os_stats.median,
             os_stats.stddev,
         ]
-        row += [far_stats.quantiles[x] for x in quantile_indices]
+        row += [far_stats.quantiles[x]  for x in quantile_indices]
+        row += [ladu_stats.quantiles[x] for x in quantile_indices]
+        row += [os_stats.quantiles[x]   for x in quantile_indices]
         rows.append(row)
 
     rows.sort()
     columns = [
-        'zone', 'far_mean',  'far_median',  'far_max', 'far_stddev',
-        'ladu_mean', 'ladu_median', 'ladu_stddev', 'os_mean', 'os_median','os_stddev',
+        'zone',
+        'far_min', 'far_max', 'far_mean', 'far_median', 'far_stddev',
+        'ladu_min', 'ladu_max', 'ladu_mean', 'ladu_median', 'ladu_stddev',
+        'os_min', 'os_max', 'os_mean', 'os_median', 'os_stddev',
     ]
-    columns += [f"far_{x + 1}" for x in quantile_indices]
+    columns += [f"far_{x + 1}"  for x in quantile_indices]
+    columns += [f"ladu_{x + 1}" for x in quantile_indices]
+    columns += [f"os_{x + 1}"   for x in quantile_indices]
     rows = [columns] + rows
     writeCsv(rows, out_path)
 
