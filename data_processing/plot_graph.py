@@ -15,6 +15,7 @@ ROOT      = "/home/charles/Projects/cambridge_property_db/"
 STATS     = os.path.join(ROOT, "stats")
 GRAPHS    = os.path.join(ROOT, "graphs")
 DATA_PATH = os.path.join(STATS, "lots_all.csv")
+OVERWRITE = False
 
 
 ZONES = {
@@ -24,7 +25,7 @@ ZONES = {
     "C": 0.6,
     "C-1": 0.75,
     "BA": 1.75,
-    "BA-1": 1.75,
+    "BA-1": 1.00,
     "BA-2": 1.75,
     "BA-3": 1.75,
     "BA-4": 1.75,
@@ -50,6 +51,10 @@ def main():
         if ZONES and zone not in ZONES:
             continue
 
+        out_path = os.path.join(GRAPHS, f"zone_{zone}.png")
+        if os.path.isfile(out_path) and not OVERWRITE:
+            continue
+
         ## Get data
         zone_data = data[zone_values == zone]
         far_values = zone_data['FAR'].to_numpy()
@@ -72,7 +77,7 @@ def main():
         ## Show
         #plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
-        plt.savefig(os.path.join(GRAPHS, f"zone_{zone}.png"))
+        plt.savefig(out_path)
         #plt.show()
         plt.clf()
 
