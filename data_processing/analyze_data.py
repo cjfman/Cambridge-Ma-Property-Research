@@ -22,6 +22,7 @@ zones_out_path  = os.path.join(STATS, "zones_all_percentile.csv")
 zones_summary   = os.path.join(STATS, "zones_summary.csv")
 zones_all_path  = os.path.join(STATS, "zones")
 areas_out_path  = os.path.join(STATS, "neighborhood_all_percentile.csv")
+areas_all_path  = os.path.join(STATS, "areas")
 areas_summary   = os.path.join(STATS, "neighborhood_summary.csv")
 
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
@@ -38,7 +39,7 @@ KENDAL    = (680,)
 MID_MASS  = (524, 539, 493, 490, 501, 506)
 
 ZONES     = []
-NO_BLOCK  = COURT + FIRST_ST
+NO_BLOCK  = COURT #+ FIRST_ST
 YES_BLOCK = []
 MAX_FAR = None
 
@@ -52,10 +53,11 @@ def main():
 
     #block_stats = writeBlockStats(raw_data, blocks_path, blocks_out_path)
     #writeZoneStats(raw_data, zones_out_path)
-    writeZoneStats(raw_data, zones_summary, summary=True)
+    #writeZoneStats(raw_data, zones_summary, summary=True)
     #writeZoneBlocksStats(raw_data, blocks_path, zones_all_path)
     #writeAreaStats(raw_data, areas_out_path)
     #writeAreaStats(raw_data, areas_summary, summary=True)
+    writeAreaBlocksStats(raw_data, blocks_path, areas_all_path)
 
 
 def getStats(data, res=2, reverse=False):
@@ -70,6 +72,7 @@ def getStats(data, res=2, reverse=False):
 
 
 def writeCsv(rows, path):
+    print(f"Writing file {path}")
     with open(path, 'w') as f:
         for row in rows:
             f.write(",".join([str(x) for x in row]))
@@ -85,7 +88,7 @@ def makeBlockGisIdMap(data, block_gis):
     return geo_id_map
 
 
-def calcBlockStats(data, zones=None):
+def calcBlockStats(data, *, zones=None, area=None):
     ## pylint: disable=too-many-locals
     block_far  = defaultdict(list)
     block_ladu = defaultdict(list)
@@ -102,6 +105,7 @@ def calcBlockStats(data, zones=None):
         exclude = not block \
             or 'dimensions' not in b \
             or (zones and b['zone'] not in zones) \
+            or (area and b['neighborhood'] != area) \
             or (MAX_FAR and dim['FAR'] > MAX_FAR)
 
         if exclude and block not in YES_BLOCK:
@@ -121,14 +125,14 @@ def calcBlockStats(data, zones=None):
     return (block_far_stats, block_ladu_stats, block_os_stats)
 
 
-def writeBlockStats(data, block_gis, out_path, *, zones=None, geo_id_map=None):
+def writeBlockStats(data, block_gis, out_path, *, zones=None, area=None, geo_id_map=None):
     geo_id_map = geo_id_map or {}
     if isinstance(block_gis, str):
         block_gis = gis.CityBlocks(block_gis)
     elif not isinstance(block_gis, gis.CityBlocks):
         raise ValueError("Argument 'block_gis' must be either of type 'str' or 'gis.CityBlocks'. Found:" + type(block_gis))
 
-    block_far_stats, block_ladu_stats, block_os_stats = calcBlockStats(data, zones=zones)
+    block_far_stats, block_ladu_stats, block_os_stats = calcBlockStats(data, zones=zones, area=area)
     ## Produce the rows
     rows = []
     for block in block_far_stats.keys():
@@ -285,6 +289,18 @@ def writeZoneBlocksStats(data, gis_path, out_path):
     geo_id_map = makeBlockGisIdMap(data, block_gis)
     for zone in ALL_ZONES:
         writeBlockStats(data, block_gis, os.path.join(out_path, f"zone_{zone}_blocks.csv"), zones=[zone], geo_id_map=geo_id_map)
+
+
+def writeAreaBlocksStats(data, gis_path, out_path):
+    block_gis = gis.CityBlocks(gis_path)
+    geo_id_map = makeBlockGisIdMap(data, block_gis)
+    areas = { x['neighborhood'] for x in data['buildings'] }
+    for area in areas:
+        clean = area.lower()
+        for x in [' ', '/']:
+            clean = clean.replace(x, '_')
+
+        writeBlockStats(data, block_gis, os.path.join(out_path, f"neighborhood_{clean}_blocks.csv"), area=area, geo_id_map=geo_id_map)
 
 
 main()
