@@ -24,7 +24,12 @@ OVERWRITE   = True
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_BIZ = ("BA", "BA-1", "BA-2", "BB", "BC")
 ZONES = ZONES_RES + ZONES_BIZ
-
+NEIGHBORHOODS = (
+    'Area 2/MIT', 'Baldwin', 'Cambridge Highlands', 'Cambridgeport',
+    'East Cambridge', 'Mid-Cambridge', 'Neighborhood Nine', 'None',
+    'North Cambridge', 'Riverside', 'Strawberry Hill', 'The Port',
+    'Wellington-Harrington', 'West Cambridge',
+)
 DEFAULT = {
     'geo_path': os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson"),
     'overwrite': False,
@@ -83,9 +88,17 @@ FAR_DATA_SETS = [
     },
 ]
 
+
+def cleanTitle(title):
+    for x in [' ', '/']:
+        title = title.replace(x, '_')
+
+    return title
+
 def main():
-    #plotAll()
-    plotZones()
+    plotAll()
+    #plotZones()
+    #plotAreas()
 
 
 def plotAll():
@@ -107,6 +120,10 @@ def plotZones():
     plotKeySections('Zone', 'zone', ZONES, 'zones')
 
 
+def plotAreas():
+    plotKeySections('Neighborhood', 'neighborhood', NEIGHBORHOODS, 'areas')
+
+
 def plotKeySections(title, key, sections, prefix):
     template = None
     with open(os.path.join(ROOT, "templates/map.html")) as f:
@@ -122,13 +139,14 @@ def plotKeySections(title, key, sections, prefix):
     }
 
     for section in sections:
+        clean = cleanTitle(section)
         data_set = dict(DEFAULT)
         for column, name in columns.items():
             data_set.update({
                 'name': f"{title} {section} {name}",
                 'column': column,
-                'data_path': os.path.join(STATS, f"{prefix}/{key}_{section}_blocks.csv"),
-                'out_path': os.path.join(MAPS, f"{prefix}/{key}_{section}_{column}.html"),
+                'data_path': os.path.join(STATS, f"{prefix}/{key}_{clean}_blocks.csv"),
+                'out_path': os.path.join(MAPS, f"{prefix}/{key}_{clean}_{column}.html"),
             })
 
             overwrite = (OVERWRITE or data_set['overwrite'])
@@ -168,7 +186,7 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kw
     geo = folium.GeoJson(geojson.geojson, name=name, style_function=style_function)
     folium.GeoJsonTooltip(fields=[column], aliases=['FAR'], sticky=False).add_to(geo)
     geo.add_to(m)
-    folium.LayerControl(position='topleft', collapsed=False).add_to(m)
+    #folium.LayerControl(position='topleft', collapsed=False).add_to(m)
 
     ## Load template
     if template is not None:
