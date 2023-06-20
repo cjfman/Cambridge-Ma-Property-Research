@@ -37,13 +37,17 @@ ZONES = {
 
 Stats = namedtuple('Stats', ['mean', 'median', 'max', 'stddev', 'quantiles'])
 
+def main():
+    plotZones()
+
+
 def getStats(data, res=2):
     stats = [round(x, res) for x in (mean(data), median(data), max(data), pstdev(data))]
     stats.append([round(x, res) for x in np.quantile(data, q=np.arange(.01, 1.00, .01))])
     return Stats(*stats)
 
 
-def main():
+def plotZones():
     data = pd.read_csv(DATA_PATH, index_col='id')
     zone_values = data['zone']
     zones = [x for x in zone_values.unique() if 'SD-' not in x]
@@ -57,33 +61,40 @@ def main():
 
         ## Get data
         zone_data = data[zone_values == zone]
-        far_values = zone_data['FAR'].to_numpy()
-        stats = getStats(far_values)
+        plotKeyData('FAR', f"Zone {zone}", zone_data, limit=ZONES[zone])
 
-        ## Make graph
-        fig, axs = plt.subplots(2, 2, tight_layout=False)
-        plot_data_sets = [
-            ("Median", stats.median),
-            ("75th Percentile", stats.quantiles[74]),
-            ("80th Percentile", stats.quantiles[79]),
-            ("90th Percentile", stats.quantiles[89]),
-        ]
-
-        for i, plot_data in enumerate(plot_data_sets):
-            title, line_value = plot_data
-            title = f"FAR Distribution - Zone {zone}\n{title}"
-            plotHist(axs[i//2][i%2], title, far_values, ZONES[zone], line_value)
-
-        ## Show
-        #plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
         plt.savefig(out_path)
         #plt.show()
         plt.clf()
 
 
-def plotHist(axs, title, values, far_limit, line_value):
-    print(axs)
+def plotKeyData(key, name, data, *, limit=None):
+    values = data[key].to_numpy()
+    stats = getStats(values)
+
+    ## Make graph
+    fig, axs = plt.subplots(2, 2, tight_layout=False)
+    plot_data_sets = [
+        ("Median", stats.median),
+        ("75th Percentile", stats.quantiles[74]),
+        ("80th Percentile", stats.quantiles[79]),
+        ("90th Percentile", stats.quantiles[89]),
+    ]
+
+    for i, plot_data in enumerate(plot_data_sets):
+        title, line_value = plot_data
+        title = f"{key} Distribution - {name}\n{title}"
+        if limit is not None:
+            plotHist(axs[i//2][i%2], title, values, limit, line_value)
+        else:
+            plotHist(axs[i//2][i%2], title, values)
+
+    ## Show
+    #plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    fig.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+
+
+def plotHist(axs, title, values, limit=None, line_value=None):
     axs.hist(values, color='lightblue', ec='black', bins=15)
     axs.set_title(title)
     axs.set_xlabel("FAR")
@@ -91,10 +102,12 @@ def plotHist(axs, title, values, far_limit, line_value):
     min_ylim, max_ylim = axs.get_ylim()
     min_xlim, max_xlim = axs.get_xlim()
     txt_offset = max_xlim * 0.01
-    line_data_sets = [
-        (far_limit, txt_offset, max_ylim*0.8, 'red', False),
-        (line_value, txt_offset, max_ylim*0.5, 'darkblue'),
-    ]
+    line_data_sets = []
+    if limit is not None:
+        line_data_sets.append((limit, txt_offset, max_ylim*0.8, 'red', False))
+    if line_value is not None:
+        line_data_sets.append((line_value, txt_offset, max_ylim*0.5, 'darkblue'))
+
     line_data_sets.sort()
     zorder = 100
     for line_data in line_data_sets:
