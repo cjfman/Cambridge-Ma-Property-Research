@@ -19,7 +19,7 @@ ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
 MAPS        = os.path.join(ROOT, "maps")
 STATS       = os.path.join(ROOT, "stats")
-OVERWRITE   = False
+OVERWRITE   = True
 
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_BIZ = ("BA", "BA-1", "BA-2", "BB", "BC")
@@ -104,6 +104,10 @@ def plotAll():
 
 
 def plotZones():
+    plotKeySections('Zone', 'zone', ZONES, 'zones')
+
+
+def plotKeySections(title, key, sections, prefix):
     template = None
     with open(os.path.join(ROOT, "templates/map.html")) as f:
         template = f.read()
@@ -117,14 +121,14 @@ def plotZones():
         'far_max':    "Max",
     }
 
-    for zone in ZONES:
+    for section in sections:
         data_set = dict(DEFAULT)
         for column, name in columns.items():
             data_set.update({
-                'name': f"Zone {zone} {name}",
+                'name': f"{title} {section} {name}",
                 'column': column,
-                'data_path': os.path.join(STATS, f"zones/zone_{zone}_blocks.csv"),
-                'out_path': os.path.join(MAPS, f"zones/zone_{zone}_{column}.html"),
+                'data_path': os.path.join(STATS, f"{prefix}/{key}_{section}_blocks.csv"),
+                'out_path': os.path.join(MAPS, f"{prefix}/{key}_{section}_{column}.html"),
             })
 
             overwrite = (OVERWRITE or data_set['overwrite'])
@@ -132,7 +136,6 @@ def plotZones():
                 continue
 
             plotGeoJson(template=template, **data_set)
-
 
 
 
