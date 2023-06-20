@@ -52,7 +52,7 @@ def main():
 
     #block_stats = writeBlockStats(raw_data, blocks_path, blocks_out_path)
     #writeZoneStats(raw_data, zones_out_path)
-    #writeZonesSummary(raw_data, zones_summary)
+    writeZoneStats(raw_data, zones_summary, summary=True)
     #writeZoneBlocksStats(raw_data, blocks_path, zones_all_path)
     #writeAreaStats(raw_data, areas_out_path)
     #writeAreaStats(raw_data, areas_summary, summary=True)
@@ -220,8 +220,8 @@ def calcAreaStats(data):
     return (far_stats, ladu_stats, os_stats)
 
 
-def writeZoneStats(data, out_path):
-    writeCsv(makeKeyStatsRows('zone', *calcZoneStats(data)), out_path)
+def writeZoneStats(data, out_path, summary=True):
+    writeCsv(makeKeyStatsRows('zone', *calcZoneStats(data), summary=summary), out_path)
 
 
 def writeAreaStats(data, out_path, *, summary=False):
@@ -278,51 +278,6 @@ def makeKeyStatsRows(key, key_far_stats, key_ladu_stats, key_os_stats, *, summar
         columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
 
     return [columns] + rows
-
-
-def writeZonesSummary(data, out_path):
-    zone_far_stats, zone_ladu_stats, zone_os_stats = calcZoneStats(data)
-    quantile_indices = [74, 79, 89]
-    rows = []
-    for zone in zone_far_stats.keys():
-        far_stats  = zone_far_stats[zone]
-        ladu_stats = zone_ladu_stats[zone]
-        os_stats   = zone_os_stats[zone]
-        row = [
-            zone,
-            far_stats.min,
-            far_stats.max,
-            far_stats.mean,
-            far_stats.median,
-            far_stats.stddev,
-            ladu_stats.min,
-            ladu_stats.max,
-            ladu_stats.mean,
-            ladu_stats.median,
-            ladu_stats.stddev,
-            os_stats.min,
-            os_stats.max,
-            os_stats.mean,
-            os_stats.median,
-            os_stats.stddev,
-        ]
-        row += [far_stats.quantiles[x]  for x in quantile_indices]
-        row += [ladu_stats.quantiles[x] for x in quantile_indices]
-        row += [os_stats.quantiles[x]   for x in quantile_indices]
-        rows.append(row)
-
-    rows.sort()
-    columns = [
-        'zone',
-        'far_min', 'far_max', 'far_mean', 'far_median', 'far_stddev',
-        'ladu_min', 'ladu_max', 'ladu_mean', 'ladu_median', 'ladu_stddev',
-        'os_min', 'os_max', 'os_mean', 'os_median', 'os_stddev',
-    ]
-    columns += [f"far_{x + 1}"  for x in quantile_indices]
-    columns += [f"ladu_{x + 1}" for x in quantile_indices]
-    columns += [f"os_{x + 1}"   for x in quantile_indices]
-    rows = [columns] + rows
-    writeCsv(rows, out_path)
 
 
 def writeZoneBlocksStats(data, gis_path, out_path):
