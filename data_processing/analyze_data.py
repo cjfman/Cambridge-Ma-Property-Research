@@ -5,12 +5,10 @@
 import json
 import os
 
-from collections import defaultdict, namedtuple
-from statistics import mean, median, pstdev
-
-import numpy as np
+from collections import defaultdict
 
 import gis
+from prop_stats import Stats, getStats
 
 ROOT            = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON         = os.path.join(ROOT, "geojson")
@@ -43,7 +41,6 @@ NO_BLOCK  = [] # COURT #+ FIRST_ST
 YES_BLOCK = []
 MAX_FAR = None
 
-Stats = namedtuple('Stats', ['mean', 'median', 'max', 'min', 'stddev', 'quantiles'])
 
 
 def main():
@@ -60,15 +57,6 @@ def main():
     #writeAreaBlocksStats(raw_data, blocks_path, areas_all_path)
 
 
-def getStats(data, res=2, reverse=False):
-    stats = [round(x, res) for x in (mean(data), median(data), max(data), min([x for x in data if x >= 0]), pstdev(data))]
-    stats.append([round(x, res) for x in np.quantile(data, q=np.arange(.01, 1.00, .01))])
-
-    stats = Stats(*stats)
-    if reverse:
-        stats.quantiles.sort(reverse=True)
-
-    return stats
 
 
 def writeCsv(rows, path):
