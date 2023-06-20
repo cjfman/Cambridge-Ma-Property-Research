@@ -39,7 +39,7 @@ KENDAL    = (680,)
 MID_MASS  = (524, 539, 493, 490, 501, 506)
 
 ZONES     = []
-NO_BLOCK  = COURT #+ FIRST_ST
+NO_BLOCK  = [] # COURT #+ FIRST_ST
 YES_BLOCK = []
 MAX_FAR = None
 
@@ -51,13 +51,13 @@ def main():
     with open(data_path) as f:
         raw_data = json.load(f)
 
-    #block_stats = writeBlockStats(raw_data, blocks_path, blocks_out_path)
+    writeBlockStats(raw_data, blocks_path, blocks_out_path)
     #writeZoneStats(raw_data, zones_out_path)
     #writeZoneStats(raw_data, zones_summary, summary=True)
     #writeZoneBlocksStats(raw_data, blocks_path, zones_all_path)
     #writeAreaStats(raw_data, areas_out_path)
     #writeAreaStats(raw_data, areas_summary, summary=True)
-    writeAreaBlocksStats(raw_data, blocks_path, areas_all_path)
+    #writeAreaBlocksStats(raw_data, blocks_path, areas_all_path)
 
 
 def getStats(data, res=2, reverse=False):

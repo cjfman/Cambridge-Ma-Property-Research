@@ -19,7 +19,7 @@ ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
 MAPS        = os.path.join(ROOT, "maps")
 STATS       = os.path.join(ROOT, "stats")
-OVERWRITE   = True
+OVERWRITE   = False
 
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_BIZ = ("BA", "BA-1", "BA-2", "BB", "BC")
@@ -49,42 +49,42 @@ FAR_DATA_SETS = [
         'name': 'Mean',
         'column': 'far_mean',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all_mean.html"),
+        'out_path': os.path.join(MAPS, "all/all_mean.html"),
     },
     {
         'title': "Median FAR per Block",
         'name': "Median",
         'column': 'far_median',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all_mean.html"),
+        'out_path': os.path.join(MAPS, "all/all_median.html"),
     },
     {
         'Title': "FAR 75th Percentile (1 of every 4)",
         'name': "75th Percentile",
         'column': 'far_75',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all_75.html"),
+        'out_path': os.path.join(MAPS, "all/all_75.html"),
     },
     {
         'title': "FAR 80th Percentile (1 of every 5)",
         'name': "80th Percentile",
         'column': 'far_80',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all_80.html"),
+        'out_path': os.path.join(MAPS, "all/all_80.html"),
     },
     {
         'title': "FAR 90th Percentile (1 of every 10)",
         'name': "90th Percentile",
         'column': 'far_90',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all_90.html"),
+        'out_path': os.path.join(MAPS, "all/all_90.html"),
     },
     {
         'title': "Max FAR on the Block",
         'name': "Max FAR on the Block",
         'column': 'far_max',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all_max.html"),
+        'out_path': os.path.join(MAPS, "all/all_max.html"),
     },
 ]
 
