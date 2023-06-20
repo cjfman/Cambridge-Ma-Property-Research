@@ -15,7 +15,7 @@ ROOT      = "/home/charles/Projects/cambridge_property_db/"
 STATS     = os.path.join(ROOT, "stats")
 GRAPHS    = os.path.join(ROOT, "graphs")
 DATA_PATH = os.path.join(STATS, "lots_all.csv")
-OVERWRITE = False
+OVERWRITE = True
 
 
 ZONES = {
@@ -38,7 +38,8 @@ ZONES = {
 Stats = namedtuple('Stats', ['mean', 'median', 'max', 'stddev', 'quantiles'])
 
 def main():
-    plotZones()
+    #plotZones()
+    plotAreas()
 
 
 def getStats(data, res=2):
@@ -68,6 +69,30 @@ def plotZones():
         plt.clf()
 
 
+def plotAreas():
+    data = pd.read_csv(DATA_PATH, index_col='id')
+    area_values = data['neighborhood']
+    areas = area_values.unique()
+    for area in areas:
+        clean = area.lower()
+        for x in [' ', '/']:
+            clean = clean.replace(x, '_')
+
+        out_path = os.path.join(GRAPHS, f"neighborhood_{clean}.png")
+        if os.path.isfile(out_path) and not OVERWRITE:
+            continue
+
+        ## Get data
+        area_data = data[area_values == area]
+        print(f"Plotting data for neighborhood {area}")
+        plotKeyData('FAR', area, area_data)
+
+        print(f"Writing to {out_path}")
+        plt.savefig(out_path)
+        plt.clf()
+
+
+
 def plotKeyData(key, name, data, *, limit=None):
     values = data[key].to_numpy()
     stats = getStats(values)
@@ -83,11 +108,12 @@ def plotKeyData(key, name, data, *, limit=None):
 
     for i, plot_data in enumerate(plot_data_sets):
         title, line_value = plot_data
-        title = f"{key} Distribution - {name}\n{title}"
-        if limit is not None:
-            plotHist(axs[i//2][i%2], title, values, limit, line_value)
+        if len(name) > 14:
+            title = f"{key} Distribution\n{name}\n{title}"
         else:
-            plotHist(axs[i//2][i%2], title, values)
+            title = f"{key} Distribution - {name}\n{title}"
+
+        plotHist(axs[i//2][i%2], title, values, line_value=line_value, limit=limit)
 
     ## Show
     #plt.tight_layout(rect=[0, 0.03, 1, 0.95])
