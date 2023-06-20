@@ -7,8 +7,9 @@ import os
 
 from collections import defaultdict
 
+import constants as cnst
 import gis
-from prop_stats import Stats, getStats
+from prop_stats import getStats
 
 ROOT            = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON         = os.path.join(ROOT, "geojson")
@@ -23,14 +24,8 @@ areas_out_path  = os.path.join(STATS, "neighborhood_all_percentile.csv")
 areas_all_path  = os.path.join(STATS, "areas")
 areas_summary   = os.path.join(STATS, "neighborhood_summary.csv")
 
-ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
-ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
-ZONES_BIZ_LOW = ("BA", "BA-1", "BA-2", "BA-3", "BA-4", "BC", "O-1")
-ZONES_BIZ_HIGH = ("BB", "BB-1", "BB-2", "O-2", "O-3", "C-2B")
-ZONES_IND = ("IA", "IA-1" "IA-2", "IB", "IB-1", "IB-2", "IC")
-ZONES_OTHER =  ("O-2A", "O-3A", "MXD", "ASD")
-ALL_ZONES = ZONES_RES + ZONES_INTS + ZONES_BIZ_LOW + ZONES_BIZ_HIGH + ZONES_IND + ZONES_OTHER
 
+## Blocks
 FIRST_ST  = (483, 526, 547, 566, 571, 505, 468)
 COURT     = (502, 479)
 KENDAL    = (680,)
@@ -275,7 +270,7 @@ def makeKeyStatsRows(key, key_far_stats, key_ladu_stats, key_os_stats, *, summar
 def writeZoneBlocksStats(data, gis_path, out_path):
     block_gis = gis.CityBlocks(gis_path)
     geo_id_map = makeBlockGisIdMap(data, block_gis)
-    for zone in ALL_ZONES:
+    for zone in cnst.ALL_ZONES:
         writeBlockStats(data, block_gis, os.path.join(out_path, f"zone_{zone}_blocks.csv"), zones=[zone], geo_id_map=geo_id_map)
 
 

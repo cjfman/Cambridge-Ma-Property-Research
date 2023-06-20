@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import constants as cnst
+
 ROOT      = "/home/charles/Projects/cambridge_property_db/"
 STATS     = os.path.join(ROOT, "stats")
 GRAPHS    = os.path.join(ROOT, "graphs")
@@ -18,22 +20,7 @@ DATA_PATH = os.path.join(STATS, "lots_all.csv")
 OVERWRITE = True
 
 
-ZONES = {
-    "A-1": 0.5,
-    "A-2": 0.5,
-    "B": 0.5,
-    "C": 0.6,
-    "C-1": 0.75,
-    "BA": 1.75,
-    "BA-1": 1.00,
-    "BA-2": 1.75,
-    "BA-3": 1.75,
-    "BA-4": 1.75,
-    "BB": 3,
-    "BB-1": 3.24,
-    "BB-2": 3.0,
-    "BC": 2.0,
-}
+ZONES = cnst.FAR_ZONES
 
 Stats = namedtuple('Stats', ['mean', 'median', 'max', 'stddev', 'quantiles'])
 

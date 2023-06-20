@@ -12,6 +12,7 @@ import pandas as pd
 from branca.element import Template, MacroElement
 
 import color_schemes as cs
+import constants as cnst
 import gis
 from simplehtml import Element, LinearGradient, Text, TickMark
 
@@ -21,15 +22,7 @@ MAPS        = os.path.join(ROOT, "maps")
 STATS       = os.path.join(ROOT, "stats")
 OVERWRITE   = False
 
-ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
-ZONES_BIZ = ("BA", "BA-1", "BA-2", "BB", "BC")
-ZONES = ZONES_RES + ZONES_BIZ
-NEIGHBORHOODS = (
-    'Area 2/MIT', 'Baldwin', 'Cambridge Highlands', 'Cambridgeport',
-    'East Cambridge', 'Mid-Cambridge', 'Neighborhood Nine', 'None',
-    'North Cambridge', 'Riverside', 'Strawberry Hill', 'The Port',
-    'Wellington-Harrington', 'West Cambridge',
-)
+ZONES = cnst.ZONES_RES + ("BA", "BA-1", "BA-2", "BB", "BC")
 DEFAULT = {
     'geo_path': os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson"),
     'overwrite': False,
@@ -121,7 +114,7 @@ def plotZones():
 
 
 def plotAreas():
-    plotKeySections('Neighborhood', 'neighborhood', NEIGHBORHOODS, 'areas')
+    plotKeySections('Neighborhood', 'neighborhood', cnst.NEIGHBORHOODS, 'areas')
 
 
 def plotKeySections(title, key, sections, prefix):

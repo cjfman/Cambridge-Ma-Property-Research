@@ -1,3 +1,4 @@
+## Zones
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
 ZONES_BIZ_LOW = ("BA", "BA-1", "BA-2", "BA-3", "BA-4", "BC", "O-1")
@@ -6,7 +7,34 @@ ZONES_IND = ("IA", "IA-1" "IA-2", "IB", "IB-1", "IB-2", "IC")
 ZONES_OTHER =  ("O-2A", "O-3A", "MXD", "ASD")
 ALL_ZONES = ZONES_RES + ZONES_INTS + ZONES_BIZ_LOW + ZONES_BIZ_HIGH + ZONES_IND + ZONES_OTHER
 
+FAR_ZONES = {
+    "A-1": 0.5,
+    "A-2": 0.5,
+    "B": 0.5,
+    "C": 0.6,
+    "C-1": 0.75,
+    "BA": 1.75,
+    "BA-1": 1.00,
+    "BA-2": 1.75,
+    "BA-3": 1.75,
+    "BA-4": 1.75,
+    "BB": 3,
+    "BB-1": 3.24,
+    "BB-2": 3.0,
+    "BC": 2.0,
+}
 
+
+## Neighborhoods
+NEIGHBORHOODS = (
+    'Area 2/MIT', 'Baldwin', 'Cambridge Highlands', 'Cambridgeport',
+    'East Cambridge', 'Mid-Cambridge', 'Neighborhood Nine', 'None',
+    'North Cambridge', 'Riverside', 'Strawberry Hill', 'The Port',
+    'Wellington-Harrington', 'West Cambridge',
+)
+
+
+## Property
 PROPERTY_CLASS = (
     '121 Corporation',
     '4-8-UNIT-APT',

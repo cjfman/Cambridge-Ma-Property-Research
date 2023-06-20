@@ -23,6 +23,6 @@ def statsSummary(stats, quantiles=(75, 80, 90)):
         ('Median', stats.median),
     ]
     for quantile in quantiles:
-        metrics.append((f"'Pecentile {quantile}'", stats.quantiles[quantile-1]))
+        metrics.append((f"'Percentile {quantile}'", stats.quantiles[quantile-1]))
 
     return "; ".join([f"{x}: {y}" for x, y in metrics])
