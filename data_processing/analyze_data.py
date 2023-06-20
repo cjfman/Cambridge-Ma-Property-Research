@@ -21,6 +21,8 @@ blocks_out_path = os.path.join(STATS, "all_percentile.csv")
 zones_out_path  = os.path.join(STATS, "zones_all_percentile.csv")
 zones_summary   = os.path.join(STATS, "zones_summary.csv")
 zones_all_path  = os.path.join(STATS, "zones")
+areas_out_path  = os.path.join(STATS, "neighborhood_all_percentile.csv")
+areas_summary   = os.path.join(STATS, "neighborhood_summary.csv")
 
 ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
 ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
@@ -50,8 +52,10 @@ def main():
 
     #block_stats = writeBlockStats(raw_data, blocks_path, blocks_out_path)
     #writeZoneStats(raw_data, zones_out_path)
-    writeZonesSummary(raw_data, zones_summary)
+    #writeZonesSummary(raw_data, zones_summary)
     #writeZoneBlocksStats(raw_data, blocks_path, zones_all_path)
+    #writeAreaStats(raw_data, areas_out_path)
+    #writeAreaStats(raw_data, areas_summary, summary=True)
 
 
 def getStats(data, res=2, reverse=False):
@@ -191,16 +195,49 @@ def calcZoneStats(data):
     return (far_stats, ladu_stats, os_stats)
 
 
+def calcAreaStats(data):
+    area_far  = defaultdict(list)
+    area_ladu = defaultdict(list)
+    area_os   = defaultdict(list)
+
+    for b in data['buildings']:
+        if not b['neighborhood'] or 'dimensions' not in b:
+            continue
+
+        dim = b['dimensions']
+        if not dim:
+            continue
+
+        area = b['neighborhood']
+        area_far[area].append(dim['FAR'])
+        area_ladu[area].append(dim['LADU'])
+        area_os[area].append(dim['OPEN'])
+
+    ## Get the stats
+    far_stats  = { key: getStats(val) for key, val in area_far.items() }
+    ladu_stats = { key: getStats(val, reverse=True) for key, val in area_ladu.items() }
+    os_stats   = { key: getStats(val, reverse=True) for key, val in area_os.items() }
+    return (far_stats, ladu_stats, os_stats)
+
+
 def writeZoneStats(data, out_path):
-    zone_far_stats, zone_ladu_stats, zone_os_stats = calcZoneStats(data)
+    writeCsv(makeKeyStatsRows('zone', *calcZoneStats(data)), out_path)
+
+
+def writeAreaStats(data, out_path, *, summary=False):
+    writeCsv(makeKeyStatsRows('neighborhood', *calcAreaStats(data), summary=summary), out_path)
+
+
+def makeKeyStatsRows(key, key_far_stats, key_ladu_stats, key_os_stats, *, summary=False):
     ## Produce the rows
+    quantile_indices = [74, 79, 89]
     rows = []
-    for zone in zone_far_stats.keys():
-        far_stats  = zone_far_stats[zone]
-        ladu_stats = zone_ladu_stats[zone]
-        os_stats   = zone_os_stats[zone]
+    for far_key in key_far_stats.keys():
+        far_stats  = key_far_stats[far_key]
+        ladu_stats = key_ladu_stats[far_key]
+        os_stats   = key_os_stats[far_key]
         row = [
-            zone,
+            far_key,
             far_stats.min,
             far_stats.max,
             far_stats.mean,
@@ -217,22 +254,30 @@ def writeZoneStats(data, out_path):
             os_stats.median,
             os_stats.stddev,
         ]
-        row += list(far_stats.quantiles)
+        if summary:
+            row += [far_stats.quantiles[x]  for x in quantile_indices]
+            row += [ladu_stats.quantiles[x] for x in quantile_indices]
+            row += [os_stats.quantiles[x]   for x in quantile_indices]
+        else:
+            row += list(far_stats.quantiles)
+
         rows.append(row)
-#        if 'SD-' not in zone:
-#            print(f"Mean Zone {zone} FAR:{far_stats.mean} LA/DU:{ladu_stats.mean} Open Space:{os_stats.mean}%")
-#            print(f"StdDev Zone {zone} FAR:{far_stats.stddev} LA/DU:{ladu_stats.stddev} Open Space:{os_stats.stddev}%")
 
     rows.sort()
     columns = [
-        'zone',
+        key,
         'far_min', 'far_max', 'far_mean','far_median', 'far_stddev',
         'ladu_min', 'ladu_max', 'ladu_mean','ladu_median', 'ladu_stddev',
         'os_min', 'os_max', 'os_mean','os_median', 'os_stddev',
     ]
-    columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
-    rows = [columns] + rows
-    writeCsv(rows, out_path)
+    if summary:
+        columns += [f"far_{x + 1}"  for x in quantile_indices]
+        columns += [f"ladu_{x + 1}" for x in quantile_indices]
+        columns += [f"os_{x + 1}"   for x in quantile_indices]
+    else:
+        columns += [f"far_{x + 1}" for x in range(len(far_stats.quantiles))]
+
+    return [columns] + rows
 
 
 def writeZonesSummary(data, out_path):
