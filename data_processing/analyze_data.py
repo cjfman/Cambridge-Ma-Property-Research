@@ -37,7 +37,6 @@ YES_BLOCK = []
 MAX_FAR = None
 
 
-
 def main():
     raw_data = None
     with open(data_path) as f:
@@ -50,8 +49,6 @@ def main():
     #writeAreaStats(raw_data, areas_out_path)
     #writeAreaStats(raw_data, areas_summary, summary=True)
     #writeAreaBlocksStats(raw_data, blocks_path, areas_all_path)
-
-
 
 
 def writeCsv(rows, path):
