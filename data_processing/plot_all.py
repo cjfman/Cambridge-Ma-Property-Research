@@ -38,6 +38,14 @@ FAR_DATA_SETS = [
         'overwrite': False,
     },
     {
+        'name': "Lots",
+        'column': 'FAR',
+        'data_path': os.path.join(STATS, "lots_all.csv"),
+        'out_path': os.path.join(MAPS, "lots_all.html"),
+        'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
+        'overwrite': False,
+    },
+    {
         'title': "Mean FAR per Block",
         'name': 'Mean',
         'column': 'far_mean',
