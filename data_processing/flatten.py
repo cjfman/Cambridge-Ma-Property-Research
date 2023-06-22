@@ -5,6 +5,8 @@ import os
 
 import gis
 
+import constants as cnts
+
 ROOT      = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON   = os.path.join(ROOT, "geojson")
 STATS     = os.path.join(ROOT, "stats")
@@ -13,19 +15,9 @@ data_path = os.path.join(ROOT, "all_data.json")
 out_path  = os.path.join(STATS, "lots_all.csv")
 lot_gis   = gis.Lots(lots_path)
 
-ZONES_RES = ("A-1", "A-2", "B", "C", "C-1", "C-1A")
-ZONES_INTS = ("C-3", "C-3A", "C-3B", "C-3", "C-3A", "C-3B")
-ZONES_BIZ_LOW = ("BA", "BA-1", "BA-2", "BA-3", "BA-4", "BC", "O-1")
-ZONES_BIZ_HIGH = ("BB", "BB-1", "BB-2", "O-2", "O-3") #, "O-2A", "O-3A", "MXD", "ASD")
-ZONES_IND = ("IA", "IA-1" "IA-2", "IB", "IB-1", "IB-2", "IC")
 
-FIRST_ST  = (483, 526, 547, 566, 571, 505, 468)
-COURT     = (502, 479)
-KENDAL    = (680,)
-MID_MASS  = (524, 539, 493, 490, 501, 506)
-
-ZONES = None #ZONES_RES + ZONES_BIZ_LOW
-NO_BLOCKS = FIRST_ST
+ZONES = None #cnts.ZONES_RES + cnts.ZONES_BIZ_LOW
+NO_BLOCKS = cnts.FIRST_ST
 
 js = None
 with open(data_path) as f:
@@ -43,6 +35,7 @@ keys = (
     'living_area',
     'neighborhood',
     'num_stories',
+    'property_class',
 )
 columns = ('id', 'ML') + keys + (
     'FAR',

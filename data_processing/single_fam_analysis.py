@@ -43,11 +43,15 @@ def analyzeZone(zone, data):
     other_res   = []
     other       = []
     total = len(data)
+    far_bad_count  = 0
+    far_bad_duplex = 0
+    far_bad_multi  = 0
     for prop in data:
         dim = prop['dimensions']
         if not dim or dim['OPEN'] < 0:
             continue
 
+        ## Categorize
         property_class = prop['property_class']
         if property_class in cnts.SNG_FAM_PROPERTY_CLASS:
             single_fams.append(prop)
@@ -59,6 +63,14 @@ def analyzeZone(zone, data):
             other_res.append(prop)
         else:
             other.append(prop)
+
+        ## Check FAR
+        if dim['FAR'] > cnts.FAR_ZONES[zone]:
+            far_bad_count += 1
+            if property_class in cnts.TWO_FAM_PROPERTY_CLASS:
+                far_bad_duplex += 1
+            elif property_class in cnts.MULTI_FAM_PROPERTY_CLASS:
+                far_bad_multi += 1
 
 
     duplex_far_stats  = calcDimensionStats(duplexes, 'FAR')
@@ -79,6 +91,9 @@ def analyzeZone(zone, data):
     print(f"\tFAR: ", statsSummary(multi_fam_far_stats))
     print(f"\tLA/DU: ", statsSummary(multi_fam_ladu_stats))
     print(f"\tOS: ", statsSummary(multi_fam_os_stats))
+    print(f"All homes {far_bad_count} ({to_perc(far_bad_count, total)}%) FAR is too large")
+    print(f"Duplexes {far_bad_duplex} ({to_perc(far_bad_duplex, len(duplexes))}%) FAR is too large")
+    print(f"Multi Families {far_bad_multi} ({to_perc(far_bad_multi, len(multi_fams))}%) FAR is too large")
 
 
 

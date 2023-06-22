@@ -8,21 +8,62 @@ ZONES_OTHER =  ("O-2A", "O-3A", "MXD", "ASD")
 ALL_ZONES = ZONES_RES + ZONES_INTS + ZONES_BIZ_LOW + ZONES_BIZ_HIGH + ZONES_IND + ZONES_OTHER
 
 FAR_ZONES = {
-    "A-1": 0.5,
-    "A-2": 0.5,
-    "B": 0.5,
-    "C": 0.6,
-    "C-1": 0.75,
-    "BA": 1.75,
+    "A-1":  0.5,
+    "A-2":  0.5,
+    "B":    0.5,
+    "C":    0.6,
+    "C-1":  0.75,
+    "BA":   1.75,
     "BA-1": 1.00,
     "BA-2": 1.75,
     "BA-3": 1.75,
     "BA-4": 1.75,
-    "BB": 3,
+    "BB":   4,
     "BB-1": 3.24,
     "BB-2": 3.0,
-    "BC": 2.0,
+    "BC":   2.0,
 }
+
+OS_ZONES = {
+    "A-1":  50,
+    "A-2":  50,
+    "B":    40,
+    "C":    36,
+    "C-1":  30,
+    "BA":   None,
+    "BA-1": None,
+    "BA-2": None,
+    "BA-3": 30,
+    "BA-4": None,
+    "BB":   None,
+    "BB-1": 15,
+    "BB-2": 15,
+    "BC":   None,
+}
+
+LADU_ZONES = {
+    "A-1":  6000,
+    "A-2":  4500,
+    "B":    2500,
+    "C":    1800,
+    "C-1":  1500,
+    "BA":   600,
+    "BA-1": 1200,
+    "BA-2": 600,
+    "BA-3": 1500,
+    "BA-4": 600,
+    "BB":   300,
+    "BB-1": 300,
+    "BB-2": 300,
+    "BC":   500,
+}
+
+
+## Blocks
+FIRST_ST  = (483, 526, 547, 566, 571, 505, 468)
+COURT     = (502, 479)
+KENDAL    = (680,)
+MID_MASS  = (524, 539, 493, 490, 501, 506)
 
 
 ## Neighborhoods
