@@ -25,7 +25,7 @@ OVERWRITE   = True
 ZONES = cnst.ZONES_RES + ("BA", "BA-1", "BA-2", "BB", "BC")
 DEFAULT = {
     'geo_path': os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson"),
-    'overwrite': False,
+    'overwrite': True,
     'skip': False,
 }
 
@@ -34,19 +34,17 @@ FAR_DATA_SETS = [
         'name': "Residential Lots",
         'column': 'FAR',
         'data_path': os.path.join(STATS, "lots_residential.csv"),
-        'out_path': os.path.join(MAPS, "lots_residential.html"),
+        'out_path': os.path.join(MAPS, "city_wide/property_lots_residential.html"),
         'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
         'overwrite': False,
-        'skip': True,
     },
     {
         'name': "Lots",
         'column': 'FAR',
         'data_path': os.path.join(STATS, "lots_all.csv"),
-        'out_path': os.path.join(MAPS, "lots_all.html"),
+        'out_path': os.path.join(MAPS, "city_wide/property_lots.html"),
         'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
-        'overwrite': False,
-        'skip': True,
+        'overwrite': True,
     },
     {
         'title': "Mean FAR per Block",
@@ -67,14 +65,14 @@ FAR_DATA_SETS = [
         'name': "75th Percentile",
         'column': 'far_75',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "city_wide/city_wide_75th_percentile.html"),
+        'out_path': os.path.join(MAPS, "city_wide/city_wide_75.html"),
     },
     {
         'title': "FAR 80th Percentile (1 of every 5)",
         'name': "80th Percentile",
         'column': 'far_80',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "city_wide/city_wide_80th_percentile.html"),
+        'out_path': os.path.join(MAPS, "city_wide/city_wide_80.html"),
     },
     {
         'title': "FAR 90th Percentile (1 of every 10)",
@@ -95,13 +93,22 @@ FAR_DATA_SETS = [
 
 ADDITIONAL_LAYERS = [
     {
+        'name': "City Boundary",
+        'geo_path': os.path.join(GEOJSON, "BOUNDARY_CityBoundary.geojson"),
+        'show': True,
+        'weight': 5,
+    },
+    {
         'name': "Zoning Districts",
         'geo_path': os.path.join(GEOJSON, "CDD_ZoningDistricts.geojson"),
+        'tooltip': "ZONE_TYPE",
+        'tooltip_name': "ZONE",
     },
     {
         'name': "Neighborhoods",
         'geo_path': os.path.join(GEOJSON, "BOUNDARY_CDDNeighborhoods.geojson"),
         'weight': 5,
+        'tooltip': "NAME",
     },
 ]
 
@@ -202,7 +209,7 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kw
 
     ## Make map
     m = folium.Map(location=[42.378, -71.11], zoom_start=14)
-    geo = folium.GeoJson(geojson.geojson, name=name, control=False, style_function=style_function)
+    geo = folium.GeoJson(geojson.geojson, name=name, style_function=style_function)
     folium.GeoJsonTooltip(fields=[column], aliases=['FAR'], sticky=False).add_to(geo)
     geo.add_to(m)
 
@@ -240,7 +247,7 @@ def htmlElemGen(tag, data='', **kwargs):
     return f'<{tag} {attrs}>{data}</{tag}>'
 
 
-def makeLayer(name, geo_path, show=False, weight=2, **kwargs):
+def makeLayer(name, geo_path, show=False, weight=2, tooltip=None, tooltip_name=None, **kwargs):
     geojson = gis.GisGeoJson(geo_path)
     style_function = lambda x: {
         'fillColor': '#000000',
@@ -249,7 +256,13 @@ def makeLayer(name, geo_path, show=False, weight=2, **kwargs):
         'color': '#000000',
         'opacity': 1,
     }
-    return folium.GeoJson(geojson.geojson, name=name, show=show, control=True, style_function=style_function)
+
+    geo = folium.GeoJson(geojson.geojson, name=name, show=show, control=True, style_function=style_function)
+    if tooltip is not None:
+        tooltip_name = tooltip_name or tooltip
+        folium.GeoJsonTooltip(fields=[tooltip], aliases=[tooltip], sticky=False).add_to(geo)
+
+    return geo
 
 
 def makeColorKey(title, gradient, cbox_h=20, cbox_w=400, tick_h=10, values=None):

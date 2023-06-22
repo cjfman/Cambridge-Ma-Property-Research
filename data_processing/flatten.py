@@ -35,7 +35,6 @@ keys = (
     'living_area',
     'neighborhood',
     'num_stories',
-    'property_class',
 )
 columns = ('id', 'ML') + keys + (
     'FAR',
