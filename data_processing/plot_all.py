@@ -20,12 +20,13 @@ ROOT        = "/home/charles/Projects/cambridge_property_db/"
 GEOJSON     = os.path.join(ROOT, "geojson")
 MAPS        = os.path.join(ROOT, "maps")
 STATS       = os.path.join(ROOT, "stats")
-OVERWRITE   = False
+OVERWRITE   = True
 
 ZONES = cnst.ZONES_RES + ("BA", "BA-1", "BA-2", "BB", "BC")
 DEFAULT = {
     'geo_path': os.path.join(GEOJSON, "ADDRESS_MasterAddressBlocks.geojson"),
     'overwrite': False,
+    'skip': False,
 }
 
 FAR_DATA_SETS = [
@@ -36,6 +37,7 @@ FAR_DATA_SETS = [
         'out_path': os.path.join(MAPS, "lots_residential.html"),
         'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
         'overwrite': False,
+        'skip': True,
     },
     {
         'name': "Lots",
@@ -44,48 +46,62 @@ FAR_DATA_SETS = [
         'out_path': os.path.join(MAPS, "lots_all.html"),
         'geo_path': os.path.join(GEOJSON, "ASSESSING_ParcelsFY2023.geojson"),
         'overwrite': False,
+        'skip': True,
     },
     {
         'title': "Mean FAR per Block",
         'name': 'Mean',
         'column': 'far_mean',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all/all_mean.html"),
+        'out_path': os.path.join(MAPS, "city_wide/city_wide_mean.html"),
     },
     {
         'title': "Median FAR per Block",
         'name': "Median",
         'column': 'far_median',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all/all_median.html"),
+        'out_path': os.path.join(MAPS, "city_wide/city_wide_median.html"),
     },
     {
         'Title': "FAR 75th Percentile (1 of every 4)",
         'name': "75th Percentile",
         'column': 'far_75',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all/all_75.html"),
+        'out_path': os.path.join(MAPS, "city_wide/city_wide_75th_percentile.html"),
     },
     {
         'title': "FAR 80th Percentile (1 of every 5)",
         'name': "80th Percentile",
         'column': 'far_80',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all/all_80.html"),
+        'out_path': os.path.join(MAPS, "city_wide/city_wide_80th_percentile.html"),
     },
     {
         'title': "FAR 90th Percentile (1 of every 10)",
         'name': "90th Percentile",
         'column': 'far_90',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all/all_90.html"),
+        'out_path': os.path.join(MAPS, "city_wide/city_wide_90.html"),
     },
     {
         'title': "Max FAR on the Block",
         'name': "Max FAR on the Block",
         'column': 'far_max',
         'data_path': os.path.join(STATS, "all_percentile.csv"),
-        'out_path': os.path.join(MAPS, "all/all_max.html"),
+        'out_path': os.path.join(MAPS, "city_wide/city_wide_max.html"),
+    },
+]
+
+
+ADDITIONAL_LAYERS = [
+    {
+        'name': "Zoning Districts",
+        'geo_path': os.path.join(GEOJSON, "CDD_ZoningDistricts.geojson"),
+    },
+    {
+        'name': "Neighborhoods",
+        'geo_path': os.path.join(GEOJSON, "BOUNDARY_CDDNeighborhoods.geojson"),
+        'weight': 5,
     },
 ]
 
@@ -112,6 +128,8 @@ def plotAll():
         override.update(data_set)
         overwrite = (OVERWRITE or override['overwrite'])
         if not overwrite and os.path.isfile(data_set['out_path']):
+            continue
+        if override['skip']:
             continue
 
         plotGeoJson(template=template, **override)
@@ -184,10 +202,16 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kw
 
     ## Make map
     m = folium.Map(location=[42.378, -71.11], zoom_start=14)
-    geo = folium.GeoJson(geojson.geojson, name=name, style_function=style_function)
+    geo = folium.GeoJson(geojson.geojson, name=name, control=False, style_function=style_function)
     folium.GeoJsonTooltip(fields=[column], aliases=['FAR'], sticky=False).add_to(geo)
     geo.add_to(m)
-    #folium.LayerControl(position='topleft', collapsed=False).add_to(m)
+
+    ## Plot extra layers
+    for layer_def in ADDITIONAL_LAYERS:
+        layer = makeLayer(**layer_def)
+        layer.add_to(m)
+
+    folium.LayerControl(position='topleft', collapsed=False).add_to(m)
 
     ## Load template
     if template is not None:
@@ -214,6 +238,18 @@ def noThrow(values, key):
 def htmlElemGen(tag, data='', **kwargs):
     attrs = " ".join([f'{k.replace("_", "-")}="{v}"' for k, v in kwargs.items()])
     return f'<{tag} {attrs}>{data}</{tag}>'
+
+
+def makeLayer(name, geo_path, show=False, weight=2, **kwargs):
+    geojson = gis.GisGeoJson(geo_path)
+    style_function = lambda x: {
+        'fillColor': '#000000',
+        'fillOpacity': 0.0,
+        'weight': weight,
+        'color': '#000000',
+        'opacity': 1,
+    }
+    return folium.GeoJson(geojson.geojson, name=name, show=show, control=True, style_function=style_function)
 
 
 def makeColorKey(title, gradient, cbox_h=20, cbox_w=400, tick_h=10, values=None):
