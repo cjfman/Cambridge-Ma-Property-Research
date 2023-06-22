@@ -91,13 +91,14 @@ FAR_DATA_SETS = [
 ]
 
 
+CITY_BOUNDARY = {
+    'name': "City Boundary",
+    'geo_path': os.path.join(GEOJSON, "BOUNDARY_CityBoundary.geojson"),
+    'show': True,
+    'weight': 5,
+}
+
 ADDITIONAL_LAYERS = [
-    {
-        'name': "City Boundary",
-        'geo_path': os.path.join(GEOJSON, "BOUNDARY_CityBoundary.geojson"),
-        'show': True,
-        'weight': 5,
-    },
     {
         'name': "Zoning Districts",
         'geo_path': os.path.join(GEOJSON, "CDD_ZoningDistricts.geojson"),
@@ -209,6 +210,8 @@ def plotGeoJson(name, geo_path, out_path, data_path, column, template=None, **kw
 
     ## Make map
     m = folium.Map(location=[42.378, -71.11], zoom_start=14)
+    city_boundary = makeLayer(**CITY_BOUNDARY)
+    city_boundary.add_to(m)
     geo = folium.GeoJson(geojson.geojson, name=name, style_function=style_function)
     folium.GeoJsonTooltip(fields=[column], aliases=['FAR'], sticky=False).add_to(geo)
     geo.add_to(m)
